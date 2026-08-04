@@ -1,0 +1,1621 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <!-- Strips Referrer to bypass Google TTS API 403 Forbidden in Shared Folders/Github Pages -->
+  <meta name="referrer" content="no-referrer">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>台灣傳統美食台語五合一互動教具</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background-color: #FAF2E5; /* Warm rice beige default */
+      -webkit-tap-highlight-color: transparent;
+      transition: background-color 0.4s ease;
+    }
+    body.shaved-ice-mode { background-color: #EBF5FB; } /* Ice blue */
+    body.spring-roll-mode { background-color: #FAF0E6; } /* Warm linen */
+    body.pearl-tea-mode { background-color: #FAF3EC; } /* Milky beige */
+    body.taiwan-oden-mode { background-color: #F0F4EE; } /* Soup green */
+
+    .card-shadow {
+      box-shadow: 0 4px 14px rgba(139, 115, 85, 0.06);
+      border: 1px solid rgba(226, 210, 181, 0.4);
+      transition: all 0.4s ease;
+    }
+    body.shaved-ice-mode .card-shadow {
+      box-shadow: 0 4px 14px rgba(135, 206, 250, 0.1);
+      border-color: rgba(186, 220, 243, 0.5);
+    }
+    body.spring-roll-mode .card-shadow {
+      box-shadow: 0 4px 14px rgba(205, 133, 63, 0.08);
+      border-color: rgba(230, 204, 178, 0.5);
+    }
+    body.pearl-tea-mode .card-shadow {
+      box-shadow: 0 4px 14px rgba(139, 90, 43, 0.06);
+      border-color: rgba(220, 200, 180, 0.5);
+    }
+    body.taiwan-oden-mode .card-shadow {
+      box-shadow: 0 4px 14px rgba(34, 139, 34, 0.05);
+      border-color: rgba(200, 220, 200, 0.5);
+    }
+
+    .drag-item {
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .drag-item:hover .control-ring {
+      opacity: 1;
+    }
+    
+    @keyframes swing {
+      0%, 100% { transform: rotate(-4deg); }
+      50% { transform: rotate(4deg); }
+    }
+    .swing-decoration {
+      animation: swing 3s ease-in-out infinite;
+      transform-origin: top center;
+    }
+
+    @keyframes steam {
+      0% { transform: translateY(3px) scale(0.9); opacity: 0; }
+      50% { opacity: 0.3; }
+      100% { transform: translateY(-12px) scale(1.1); opacity: 0; }
+    }
+    .steam-vapor {
+      animation: steam 3s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="min-h-screen py-4 px-3 flex flex-col items-center justify-start select-none">
+
+  <!-- MAIN CONTAINER -->
+  <div class="w-full max-w-md bg-[#F5EFE4] rounded-[28px] overflow-hidden border-4 border-[#1E5136] shadow-2xl flex flex-col pb-6 transition-all duration-400" id="main-container">
+    
+    <!-- TABS (Five Modes) -->
+    <div class="grid grid-cols-5 gap-0.5 bg-[#123623] p-1 border-b-4 border-[#123623]" id="tab-bar">
+      <button id="tab-zongzi" class="py-2 text-center font-black text-[10px] sm:text-xs rounded-t-xl transition-all duration-300 bg-[#1E5136] text-[#FDF03A] border-b-2 border-[#FDF03A]">
+        肉粽
+      </button>
+      <button id="tab-ice" class="py-2 text-center font-black text-[10px] sm:text-xs rounded-t-xl transition-all duration-300 text-slate-400 hover:text-white">
+        礤冰
+      </button>
+      <button id="tab-roll" class="py-2 text-center font-black text-[10px] sm:text-xs rounded-t-xl transition-all duration-300 text-slate-400 hover:text-white">
+        潤餅
+      </button>
+      <button id="tab-tea" class="py-2 text-center font-black text-[10px] sm:text-xs rounded-t-xl transition-all duration-300 text-slate-400 hover:text-white">
+        珍奶
+      </button>
+      <button id="tab-oden" class="py-2 text-center font-black text-[10px] sm:text-xs rounded-t-xl transition-all duration-300 text-slate-400 hover:text-white">
+        烏輪
+      </button>
+    </div>
+
+    <!-- HEADER TITLE BAR -->
+    <header class="bg-[#1E5136] py-3.5 px-4 flex items-center justify-center space-x-2 text-white transition-colors duration-400" id="header-bar">
+      <span class="text-xl" id="header-icon">🍙</span>
+      <h1 class="text-base sm:text-lg font-black tracking-widest text-[#FDF8F0]" id="header-title">咱來縛肉粽！</h1>
+    </header>
+
+    <!-- MAIN SCROLLABLE BODY -->
+    <div class="px-3 pt-4 space-y-4 flex-1">
+      
+      <!-- PART 1: INGREDIENTS SELECTOR -->
+      <section class="bg-[#FFFDF9] rounded-2xl p-4 card-shadow relative">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center space-x-2">
+            <span class="text-lg" id="panel-icon">🍱</span>
+            <h2 class="text-sm sm:text-base font-bold text-[#1E5136] transition-colors" id="panel-title">1.料據在你揀--lah！</h2>
+          </div>
+          <span class="bg-[#F2DF3A] text-[#1E5136] text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-sm transition-all" id="engine-badge">
+            🔊 雲端台語
+          </span>
+        </div>
+
+        <!-- Grid dynamically populated via JS -->
+        <div class="grid grid-cols-2 gap-3" id="ingredients-grid"></div>
+
+        <!-- Banner instructions -->
+        <div class="bg-[#FFFDEB] border border-[#FDEAA8] rounded-xl p-2.5 text-[11px] text-[#8B6B3F] mt-3.5 flex items-start space-x-1.5 leading-relaxed" id="banner-tips">
+          <span class="text-sm mt-0.5">💡</span>
+          <p id="tip-text">
+            你會使佇 <strong>[- / +]</strong> 加料，koh會使佇粽葉頂懸「凊彩調對kap轉踅」伊ê位置ŏ͘！
+          </p>
+        </div>
+      </section>
+
+      <!-- PART 2: THE PLAYGROUND CANVAS -->
+      <section class="bg-white rounded-2xl p-4 card-shadow relative flex flex-col">
+        
+        <!-- Canvas Frame -->
+        <div id="canvas-area" class="w-full h-64 bg-gradient-to-b from-slate-50 to-emerald-50/20 rounded-xl border border-dashed border-[#D6C7AE] relative overflow-hidden flex items-center justify-center">
+          
+          <!-- Tutorial Tooltip Bubble -->
+          <div id="canvas-hint" class="absolute top-3 left-3 right-3 bg-white/95 backdrop-blur-sm border border-emerald-100 px-3 py-1.5 rounded-full text-center text-[10px] text-emerald-800 shadow-sm z-30 pointer-events-none transition-opacity duration-300">
+            👉 請點選上方配料 [ + ] khǹg入肉粽葉中！
+          </div>
+
+          <!-- UNWRAPPED STATE -->
+          <div id="unwrapped-state" class="relative w-full h-full flex items-center justify-center transition-all duration-300">
+            <div id="canvas-bg-graphic" class="w-full h-full flex items-center justify-center"></div>
+            <!-- Container for Draggable Spawn Emojis -->
+            <div id="spawning-container" class="absolute inset-0 z-20"></div>
+          </div>
+
+          <!-- WRAPPED STATE -->
+          <div id="wrapped-state" class="hidden absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-[#F4F9FB] transition-all duration-300">
+            <div id="completed-graphic" class="relative w-36 h-36 flex items-center justify-center"></div>
+            <!-- Ribbon Badge -->
+            <span class="mt-3 bg-[#729A82] text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-sm flex items-center space-x-1 transition-colors" id="wrapped-badge">
+              <span>✨</span> <span id="wrapped-badge-text">縛好矣！芳貢貢！</span>
+            </span>
+          </div>
+
+          <!-- Decorative Hanger (Bottom right swing toy) -->
+          <div class="absolute bottom-2.5 right-2.5 flex flex-col items-center pointer-events-none z-10">
+            <div class="w-4 h-0.5 bg-amber-800/80 rounded-sm" id="hanger-top"></div>
+            <div class="w-0.5 h-4 bg-amber-700/60" id="hanger-string"></div>
+            <div class="swing-decoration -mt-0.5" id="mini-swing-toy"></div>
+          </div>
+
+        </div>
+
+        <!-- Buttons Block -->
+        <div class="grid grid-cols-2 gap-3 mt-4">
+          <!-- Restart Button -->
+          <button id="btn-restart" class="bg-[#5A6C7C] hover:bg-[#4E5E6D] text-white font-bold py-2.5 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-md active:scale-95 transition-all focus:outline-none">
+            <span class="text-base">🔀</span>
+            <span id="restart-text" class="text-xs sm:text-sm tracking-wide">閣再來一个</span>
+          </button>
+          
+          <!-- Finish/Wrap Button -->
+          <button id="btn-finish" class="bg-[#F36F21] hover:bg-[#E25E12] text-white font-black py-2.5 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-md active:scale-95 transition-all focus:outline-none">
+            <span class="text-base" id="finish-icon">🍙</span>
+            <span id="finish-text" class="text-xs sm:text-sm tracking-wide">我綁好矣！</span>
+          </button>
+        </div>
+
+      </section>
+
+      <!-- PART 3: SPEECH AREA -->
+      <section class="bg-[#1E5136] rounded-2xl p-4 border-2 border-[#123623] text-white card-shadow transition-colors duration-400" id="speech-section">
+        
+        <!-- Header -->
+        <div class="flex items-center space-x-2 mb-3">
+          <span class="text-lg">🗣️</span>
+          <h2 class="text-xs sm:text-sm font-black text-white">2.請看按呢有落勾--無！<span class="text-[10px] text-emerald-200 font-normal ml-1" id="speech-sub">（用台語介紹肉粽內底有啥）</span></h2>
+        </div>
+
+        <!-- Speech Frame Container -->
+        <div class="bg-[#17432C] rounded-2xl p-3.5 flex items-center space-x-3.5 border border-[#123522] transition-colors duration-400" id="speech-box">
+          
+          <!-- circular speaker microphone trigger button -->
+          <button id="btn-speak-all" class="w-12 h-12 shrink-0 bg-white hover:bg-emerald-50 text-[#1E5136] rounded-full flex items-center justify-center shadow-md active:scale-90 transition-transform focus:outline-none" title="點擊聆聽台語發音">
+            <i class="fa-solid fa-microphone text-lg text-emerald-800 animate-pulse" id="mic-icon"></i>
+          </button>
+
+          <!-- Speech Text content -->
+          <div class="flex-1 min-h-[48px] flex flex-col justify-center">
+            <span class="text-[9px] text-emerald-300 font-bold tracking-wider mb-0.5" id="speech-prefix">這是我ê肉粽，我ê肉粽內底有：</span>
+            <div id="speech-sentence" class="text-xs sm:text-sm font-black text-[#FDF03A] tracking-wide leading-relaxed">
+              (請點選上方配料 + khǹg入肉粽內底...)
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+    </div>
+  </div>
+
+  <div class="text-[10px] text-slate-400 mt-4 text-center select-none font-medium" id="page-footer">
+    咱來縛肉粽、礤冰、包潤餅、鋪珍奶、燙烏輪！ | 具備線上高清晰台語語音與離線聲學合成引擎<br>@史秀里冊房 Tō͘ Sìn-liông 製作 2026
+  </div>
+
+  <!-- Help Instruction Modal for Silent devices -->
+  <div id="help-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border-2 border-[#1E5136]" id="modal-container">
+      <div class="bg-[#1E5136] text-white p-4 text-center font-black text-base flex items-center justify-center space-x-2" id="modal-header">
+        <span>📢</span> <span>溫馨提示 (教學說明)</span>
+      </div>
+      <div class="p-6 text-sm text-slate-700 space-y-4 leading-relaxed">
+        <p class="font-bold text-[#1E5136] text-base" id="modal-title">🔊 聽不到聲音嗎？這是因為瀏覽器安全政策阻擋了預覽頁面的音訊！</p>
+        <p>請採用以下任一簡單方法，就能**100% 成功聽到超大聲台語發音**：</p>
+        <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-200 space-y-2" id="modal-tips">
+          <p class="font-semibold text-emerald-900">👉 方法一（推薦）：</p>
+          <p class="text-xs">點選此網頁最右上角的<strong>「在新分頁開啟 (Open in New Tab)」</strong>圖示，在獨立頁面玩就絕對有聲音！</p>
+          <p class="font-semibold text-emerald-900 mt-2">👉 方法二（本機執行）：</p>
+          <p class="text-xs">直接在您的<strong>電腦雙擊打開「index.html」檔案</strong>直接玩！</p>
+        </div>
+      </div>
+      <div class="p-4 bg-slate-50 border-t flex justify-center">
+        <button id="btn-close-modal" class="bg-[#F36F21] text-white font-black py-2 px-6 rounded-full text-xs hover:bg-[#E25E12] transition-colors shadow-md focus:outline-none">
+          我知道了，緊來試驗！
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPLICATION CODE LOGIC -->
+  <script>
+    // 1. Five Modes Datasets (8 ingredients each)
+    const zongziIngredients = [
+      { id: 'yolk', name: '卵仁', sub: 'nn̂g-jîn', emoji: '🟡' },
+      { id: 'mushroom', name: '香菇', sub: 'hiunn-koo', emoji: '🍄' },
+      { id: 'peanut', name: '塗豆', sub: 'thôo-tāu', emoji: '🥜' },
+      { id: 'pork', name: '滷肉', sub: 'lóo-bah', emoji: '🥓' },
+      { id: 'chestnut', name: '栗子', sub: 'la̍t-tsí', emoji: '🌰' },
+      { id: 'shrimp', name: '蝦米', sub: 'hê-bí', emoji: '🦐' },
+      { id: 'squid', name: '魷魚', sub: 'jiû-hî', emoji: '🦑' },
+      { id: 'salted_egg', name: '鹹鴨卵', sub: 'kiâm-ah-nn̄g', emoji: '🍳' }
+    ];
+
+    const shavedIceIngredients = [
+      { id: 'redbean', name: '紅豆', sub: 'âng-tāu', emoji: '🔴' },
+      { id: 'mungbean', name: '綠豆', sub: 'li̍k-tāu', emoji: '🟢' },
+      { id: 'pearl', name: '粉圓', sub: 'hún-înn', emoji: '⚫' },
+      { id: 'taroball', name: '芋圓', sub: 'ōo-înn', emoji: '🍠' },
+      { id: 'aiyu', name: '愛玉', sub: 'ài-io̍k', emoji: '🟡' },
+      { id: 'grassjelly', name: '仙草', sub: 'sian-tsháu', emoji: '🖤' },
+      { id: 'pinkkui', name: '粉粿', sub: 'hún-kué', emoji: '🟨' },
+      { id: 'condensed', name: '牛奶膏', sub: 'gû-leng-ko', emoji: '🥛' }
+    ];
+
+    const springRollIngredients = [
+      { id: 'peanutpowder', name: '花生粉', sub: 'thôo-tāu-hún', emoji: '🟤' },
+      { id: 'sugar', name: '糖粉', sub: 'thg-hún', emoji: '⚪' },
+      { id: 'cabbage', name: '高麗菜', sub: 'ko-lê-tshài', emoji: '🥬' },
+      { id: 'sprout', name: '豆芽菜', sub: 'tāu-āu-tshài', emoji: '🌱' },
+      { id: 'redpork', name: '紅糟肉', sub: 'âng-tsau-bah', emoji: '🥩' },
+      { id: 'tofu', name: '豆乾', sub: 'tāu-kuann', emoji: '🧱' },
+      { id: 'egg-silk', name: '煎蛋絲', sub: 'tsian-nn̂g-si', emoji: '🍳' },
+      { id: 'coriander', name: '芫荽', sub: 'iân-sui', emoji: '🌿' }
+    ];
+
+    const pearlTeaIngredients = [
+      { id: 't-pearl', name: '粉圓', sub: 'hún-înn', emoji: '⚫' },
+      { id: 'coconut', name: '椰果', sub: 'iâ-kó', emoji: '🥥' },
+      { id: 'pudding', name: '布丁', sub: 'pòo-tīng', emoji: '🍮' },
+      { id: 'icecube', name: '冰塊', sub: 'ping-kuái', emoji: '🧊' },
+      { id: 't-grass', name: '仙草', sub: 'sian-tsháu', emoji: '🖤' },
+      { id: 'greentea-jelly', name: '綠茶凍', sub: 'li̍k-tê-tāng', emoji: '🍵' },
+      { id: 'kanten', name: '寒天', sub: 'hân-thian', emoji: '⬜' },
+      { id: 'taro-paste', name: '芋泥', sub: 'ōo-nî', emoji: '🍠' }
+    ];
+
+    const odenIngredients = [
+      { id: 'oo-lian', name: '烏輪', sub: 'oo-liân', emoji: '🍢' },
+      { id: 'tempura', name: '甜不辣', sub: 'thian-pú-lah', emoji: '🍘' },
+      { id: 'blooddish', name: '米血', sub: 'mí-hueh', emoji: '🟫' },
+      { id: 'sauce', name: '甜辣醬', sub: 'tiann-la̍h-tsiùnn', emoji: '🥫' },
+      { id: 'radish', name: '菜頭', sub: 'tshài-thâu', emoji: '⬜' },
+      { id: 'porkball', name: '貢丸', sub: 'kòng-uân', emoji: '🟤' },
+      { id: 'fishball', name: '魚丸', sub: 'hî-uân', emoji: '⚪' },
+      { id: 'fried-tofu', name: '油豆腐', sub: 'iû-tāu-hū', emoji: '🟨' }
+    ];
+
+    // 2. State registry
+    let currentMode = 'zongzi'; // 'zongzi', 'shavedIce', 'springRoll', 'pearlMilkTea', 'taiwanOden'
+    let basket = {};            // Stores dynamic quantities for current mode
+    let canvasItems = [];       // Array of draggable objects in the canvas
+    let isWrapped = false;
+    let activeAudio = null;     
+    let isAudioUnlocked = false;
+    let isSpeechSupported = true;
+
+    // DOM selectors
+    const mainContainer = document.getElementById('main-container');
+    const headerBar = document.getElementById('header-bar');
+    const headerIcon = document.getElementById('header-icon');
+    const headerTitle = document.getElementById('header-title');
+    const panelIcon = document.getElementById('panel-icon');
+    const panelTitle = document.getElementById('panel-title');
+    const gridEl = document.getElementById('ingredients-grid');
+    const tipText = document.getElementById('tip-text');
+    const canvasHint = document.getElementById('canvas-hint');
+    const spawnContainer = document.getElementById('spawning-container');
+    const canvasBgGraphic = document.getElementById('canvas-bg-graphic');
+    const completedGraphic = document.getElementById('completed-graphic');
+    const unwrappedState = document.getElementById('unwrapped-state');
+    const wrappedState = document.getElementById('wrapped-state');
+    const wrappedBadge = document.getElementById('wrapped-badge');
+    const wrappedBadgeText = document.getElementById('wrapped-badge-text');
+    const miniSwingToy = document.getElementById('mini-swing-toy');
+    const finishText = document.getElementById('finish-text');
+    const finishIcon = document.getElementById('finish-icon');
+    const speechSection = document.getElementById('speech-section');
+    const speechSub = document.getElementById('speech-sub');
+    const speechBox = document.getElementById('speech-box');
+    const speechPrefix = document.getElementById('speech-prefix');
+    const speechSentenceEl = document.getElementById('speech-sentence');
+    const micIcon = document.getElementById('mic-icon');
+    const engineBadge = document.getElementById('engine-badge');
+
+    const btnRestart = document.getElementById('btn-restart');
+    const restartText = document.getElementById('restart-text');
+    const btnFinish = document.getElementById('btn-finish');
+    const btnSpeakAll = document.getElementById('btn-speak-all');
+
+    const helpModal = document.getElementById('help-modal');
+    const btnCloseModal = document.getElementById('btn-close-modal');
+
+    // 3. Initialize App
+    function init() {
+      // Set initial mode layout
+      switchMode('zongzi');
+
+      // Binds pointer events for cross-platform precision
+      btnRestart.addEventListener('pointerdown', restartAction);
+      btnFinish.addEventListener('pointerdown', toggleWrapState);
+      btnSpeakAll.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        unlockAudioPipeline();
+        playFullSpeechSentence();
+      });
+
+      // Tab Swapping bindings
+      document.getElementById('tab-zongzi').addEventListener('pointerdown', () => switchMode('zongzi'));
+      document.getElementById('tab-ice').addEventListener('pointerdown', () => switchMode('shavedIce'));
+      document.getElementById('tab-roll').addEventListener('pointerdown', () => switchMode('springRoll'));
+      document.getElementById('tab-tea').addEventListener('pointerdown', () => switchMode('pearlMilkTea'));
+      document.getElementById('tab-oden').addEventListener('pointerdown', () => switchMode('taiwanOden'));
+
+      btnCloseModal.addEventListener('pointerdown', () => helpModal.classList.add('hidden'));
+
+      // Quick-unlock trigger on first tap
+      window.addEventListener('pointerdown', unlockAudioPipeline, { passive: true });
+
+      checkSpeechEngineSupport();
+    }
+
+    function checkSpeechEngineSupport() {
+      if (!('speechSynthesis' in window)) {
+        isSpeechSupported = false;
+        helpModal.classList.remove('hidden');
+      }
+    }
+
+    // iOS Web Audio unlock mechanism
+    function unlockAudioPipeline() {
+      if (isAudioUnlocked) return;
+      try {
+        const dummy = new Audio();
+        dummy.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==";
+        dummy.play().then(() => {
+          isAudioUnlocked = true;
+        }).catch(() => {});
+      } catch (e) {}
+    }
+
+    // 4. SWITCH MODE: Layout, Colors, Icons and SVG setup
+    window.switchMode = function(mode) {
+      if (activeAudio) { activeAudio.pause(); activeAudio = null; }
+      if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); }
+
+      currentMode = mode;
+      basket = {};
+      canvasItems = [];
+      spawnContainer.innerHTML = '';
+      isWrapped = false;
+
+      // Active Theme class cleanup
+      document.body.classList.remove('shaved-ice-mode', 'spring-roll-mode', 'pearl-tea-mode', 'taiwan-oden-mode');
+      
+      const tabIds = ['tab-zongzi', 'tab-ice', 'tab-roll', 'tab-tea', 'tab-oden'];
+      tabIds.forEach(id => {
+        document.getElementById(id).className = "py-2 text-center font-black text-[10px] sm:text-xs rounded-t-xl transition-all duration-300 text-slate-400 hover:text-white";
+      });
+
+      if (mode === 'zongzi') {
+        mainContainer.className = "w-full max-w-md bg-[#F5EFE4] rounded-[28px] overflow-hidden border-4 border-[#1E5136] shadow-2xl flex flex-col pb-6 transition-all duration-400";
+        headerBar.className = "bg-[#1E5136] py-3.5 px-4 flex items-center justify-center space-x-2 text-white transition-all duration-400";
+        headerIcon.innerText = "🍙"; headerTitle.innerText = "咱來縛肉粽\uFF01";
+        panelIcon.innerText = "🍱"; panelTitle.innerText = "1.料據在你揀--lah\uFF01"; panelTitle.className = "text-sm sm:text-base font-bold text-[#1E5136]";
+        tipText.innerHTML = `你會使佇 <strong class="text-[#1E5136]">[- / +]</strong> 加料\uFF0Ckoh會使佇粽葉頂懸「凊彩調對kap轉踅」伊ê位置ŏ͘\uFF01`;
+        canvasHint.innerText = "👉 請點選上方配料 [ + ] khǹg入肉粽葉中\uFF01";
+        if (restartText) restartText.innerText = "閣再來一个";
+        canvasHint.className = "absolute top-3 left-3 right-3 bg-white/95 backdrop-blur-sm border border-emerald-100 px-3 py-1.5 rounded-full text-center text-[10px] text-emerald-800 shadow-sm z-30 pointer-events-none transition-opacity duration-300";
+        finishText.innerText = "我綁好矣\uFF01"; finishIcon.innerText = "🍙";
+        speechSection.className = "bg-[#1E5136] rounded-2xl p-4 border-2 border-[#123623] text-white card-shadow transition-all duration-400";
+        speechSub.innerText = "\uFF08用台語介紹肉粽內底有啥\uFF09";
+        speechBox.className = "bg-[#17432C] rounded-2xl p-3.5 flex items-center space-x-3.5 border border-[#123522] transition-all duration-400";
+        speechPrefix.innerText = "這是我ê肉粽\uFF0C我ê肉粽內底有\uFF1A";
+        speechPrefix.className = "text-[10px] text-emerald-300 font-bold tracking-wider mb-0.5";
+        wrappedBadge.className = "mt-3 bg-[#729A82] text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-sm flex items-center space-x-1";
+        wrappedBadgeText.innerText = "縛好矣\uFF01芳貢貢\uFF01";
+
+        document.getElementById('tab-zongzi').className = "py-2 text-center font-black text-[10px] sm:text-xs rounded-t-xl transition-all duration-300 bg-[#1E5136] text-[#FDF03A] border-b-2 border-[#FDF03A]";
+        loadZongziGraphics();
+
+      } else if (mode === 'shavedIce') {
+        document.body.classList.add('shaved-ice-mode');
+        mainContainer.className = "w-full max-w-md bg-[#F4F9FC] rounded-[28px] overflow-hidden border-4 border-[#0284C7] shadow-2xl flex flex-col pb-6 transition-all duration-400";
+        headerBar.className = "bg-[#0284C7] py-3.5 px-4 flex items-center justify-center space-x-2 text-white transition-all duration-400";
+        headerIcon.innerText = "🍧"; headerTitle.innerText = "咱來礤冰\uFF01";
+        panelIcon.innerText = "🍧"; panelTitle.innerText = "1.料據在你揀--lah\uFF01"; panelTitle.className = "text-sm sm:text-base font-bold text-[#0284C7]";
+        tipText.innerHTML = `你會使佇 <strong class="text-[#0284C7]">[- / +]</strong> 加料\uFF0Ckoh會使佇礤冰頂懸「凊彩調對kap轉踅」伊ê位置ŏ͘\uFF01`;
+        canvasHint.innerText = "👉 請點選上方配料 [ + ] khǹg入礤冰山丘上\uFF01";
+    if (restartText) restartText.innerText = "閣再來一碗";
+        canvasHint.className = "absolute top-3 left-3 right-3 bg-white/95 backdrop-blur-sm border border-sky-100 px-3 py-1.5 rounded-full text-center text-[10px] text-sky-800 shadow-sm z-30 pointer-events-none transition-opacity duration-300";
+        finishText.innerText = "我礤好矣\uFF01"; finishIcon.innerText = "🍧";
+        speechSection.className = "bg-[#0284C7] rounded-2xl p-4 border-2 border-[#0369A1] text-white card-shadow transition-all duration-400";
+        speechSub.innerText = "\uFF08用台語介紹礤冰內底有啥\uFF09";
+        speechBox.className = "bg-[#0C4A6E] rounded-2xl p-3.5 flex items-center space-x-3.5 border border-[#082F49] transition-all duration-400";
+        speechPrefix.innerText = "這是我礤ê礤冰\uFF0C我礤ê礤冰內底有\uFF1A";
+        speechPrefix.className = "text-[10px] text-sky-300 font-bold tracking-wider mb-0.5";
+        wrappedBadge.className = "mt-3 bg-[#0284C7] text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-sm flex items-center space-x-1";
+        wrappedBadgeText.innerText = "淋牛奶膏矣\uFF01甜粅粅\uFF01";
+
+        document.getElementById('tab-ice').className = "py-2 text-center font-black text-[10px] sm:text-xs rounded-t-xl transition-all duration-300 bg-[#0284C7] text-[#FDF03A] border-b-2 border-[#FDF03A]";
+        loadShavedIceGraphics();
+
+      } else if (mode === 'springRoll') {
+        document.body.classList.add('spring-roll-mode');
+        mainContainer.className = "w-full max-w-md bg-[#FAF5EF] rounded-[28px] overflow-hidden border-4 border-[#B45309] shadow-2xl flex flex-col pb-6 transition-all duration-400";
+        headerBar.className = "bg-[#B45309] py-3.5 px-4 flex items-center justify-center space-x-2 text-white transition-all duration-400";
+        headerIcon.innerText = "🌯"; headerTitle.innerText = "咱來包潤餅\uFF01";
+        panelIcon.innerText = "🌯"; panelTitle.innerText = "1.料據在你揀--lah\uFF01"; panelTitle.className = "text-sm sm:text-base font-bold text-[#B45309]";
+        tipText.innerHTML = `你會使佇 <strong class="text-[#B45309]">[- / +]</strong> 加料\uFF0Ckoh會使佇潤餅皮頂懸「凊彩調對kap轉踅」伊ê位置ŏ͘\uFF01`;
+        canvasHint.innerText = "👉 請點選上方配料 [ + ] 放在潤餅皮上\uFF01";
+    if (restartText) restartText.innerText = "閣再來一𩛩";
+        canvasHint.className = "absolute top-3 left-3 right-3 bg-white/95 backdrop-blur-sm border border-amber-100 px-3 py-1.5 rounded-full text-center text-[10px] text-amber-800 shadow-sm z-30 pointer-events-none transition-opacity duration-300";
+        finishText.innerText = "我包好矣\uFF01"; finishIcon.innerText = "🌯";
+        speechSection.className = "bg-[#B45309] rounded-2xl p-4 border-2 border-[#78350F] text-white card-shadow transition-all duration-400";
+        speechSub.innerText = "\uFF08用台語介紹潤餅內底包啥\uFF09";
+        speechBox.className = "bg-[#78350F] rounded-2xl p-3.5 flex items-center space-x-3.5 border border-[#451A03] transition-all duration-400";
+        speechPrefix.innerText = "這是我包ê潤餅\uFF0C我潤餅內底有\uFF1A";
+        speechPrefix.className = "text-[10px] text-amber-300 font-bold tracking-wider mb-0.5";
+        wrappedBadge.className = "mt-3 bg-[#D97706] text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-sm flex items-center space-x-1";
+        wrappedBadgeText.innerText = "捲好矣\uFF01真芳\uFF0C緊來食\uFF01";
+
+        document.getElementById('tab-roll').className = "py-2 text-center font-black text-[10px] sm:text-xs rounded-t-xl transition-all duration-300 bg-[#B45309] text-[#FDF03A] border-b-2 border-[#FDF03A]";
+        loadSpringRollGraphics();
+
+      } else if (mode === 'pearlMilkTea') {
+        document.body.classList.add('pearl-tea-mode');
+        mainContainer.className = "w-full max-w-md bg-[#FAF3EC] rounded-[28px] overflow-hidden border-4 border-[#8B5A2B] shadow-2xl flex flex-col pb-6 transition-all duration-400";
+        headerBar.className = "bg-[#8B5A2B] py-3.5 px-4 flex items-center justify-center space-x-2 text-white transition-all duration-400";
+        headerIcon.innerText = "🧋"; headerTitle.innerText = "咱來鋪珍奶\uFF01";
+        panelIcon.innerText = "🧋"; panelTitle.innerText = "1.料據在你揀--lah\uFF01"; panelTitle.className = "text-sm sm:text-base font-bold text-[#8B5A2B]";
+        tipText.innerHTML = `你會使佇 <strong class="text-[#8B5A2B]">[- / +]</strong> 加料\uFF0Ckoh會使佇杯仔內底「凊彩調對kap轉踅」伊ê位置ŏ͘\uFF01`;
+        canvasHint.innerText = "👉 請點選上方配料 [ + ] khǹg入珍奶杯中\uFF01";
+    if (restartText) restartText.innerText = "閣再來一杯";
+        canvasHint.className = "absolute top-3 left-3 right-3 bg-white/95 backdrop-blur-sm border border-amber-100 px-3 py-1.5 rounded-full text-center text-[10px] text-amber-800 shadow-sm z-30 pointer-events-none transition-opacity duration-300";
+        finishText.innerText = "我搖好矣\uFF01"; finishIcon.innerText = "🧋";
+        speechSection.className = "bg-[#8B5A2B] rounded-2xl p-4 border-2 border-[#5C3A1A] text-white card-shadow transition-all duration-400";
+        speechSub.innerText = "\uFF08用台語介紹珍奶內底裝啥\uFF09";
+        speechBox.className = "bg-[#5C3A1A] rounded-2xl p-3.5 flex items-center space-x-3.5 border border-[#3D2512] transition-all duration-400";
+        speechPrefix.innerText = "這杯是我搖ê珍奶\uFF0C我珍奶內底有\uFF1A";
+        speechPrefix.className = "text-[10px] text-amber-200 font-bold tracking-wider mb-0.5";
+        wrappedBadge.className = "mt-3 bg-[#8B5A2B] text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-sm flex items-center space-x-1";
+        wrappedBadgeText.innerText = "搖予勻矣\uFF01誠芳誠好飲\uFF01";
+
+        document.getElementById('tab-tea').className = "py-2 text-center font-black text-[10px] sm:text-xs rounded-t-xl transition-all duration-300 bg-[#8B5A2B] text-[#FDF03A] border-b-2 border-[#FDF03A]";
+        loadPearlTeaGraphics();
+
+      } else if (mode === 'taiwanOden') {
+        document.body.classList.add('taiwan-oden-mode');
+        mainContainer.className = "w-full max-w-md bg-[#F0F4EE] rounded-[28px] overflow-hidden border-4 border-[#123F27] shadow-2xl flex flex-col pb-6 transition-all duration-400";
+        headerBar.className = "bg-[#123F27] py-3.5 px-4 flex items-center justify-center space-x-2 text-white transition-all duration-400";
+        headerIcon.innerText = "🍢"; headerTitle.innerText = "咱來燙烏輪\uFF01";
+        panelIcon.innerText = "🍢"; panelTitle.innerText = "1.料據在你揀--lah\uFF01"; panelTitle.className = "text-sm sm:text-base font-bold text-[#123F27]";
+        tipText.innerHTML = `你會使佇 <strong class="text-[#123F27]">[- / +]</strong> 加料\uFF0Ckoh會使佇鐵鍋內底「凊彩調對kap轉踅」伊ê位置ŏ͘\uFF01`;
+        canvasHint.innerText = "👉 請點選上方配料 [ + ] khǹg入烏輪鐵鍋中\uFF01";
+    if (restartText) restartText.innerText = "閣再來一盤";
+        canvasHint.className = "absolute top-3 left-3 right-3 bg-white/95 backdrop-blur-sm border border-emerald-100 px-3 py-1.5 rounded-full text-center text-[10px] text-[#123F27] shadow-sm z-30 pointer-events-none transition-opacity duration-300";
+        finishText.innerText = "我燙好矣\uFF01"; finishIcon.innerText = "🍢";
+        speechSection.className = "bg-[#123F27] rounded-2xl p-4 border-2 border-[#0A2416] text-white card-shadow transition-all duration-400";
+        speechSub.innerText = "\uFF08用台語介紹烏輪內底燙啥\uFF09";
+        speechBox.className = "bg-[#0A2416] rounded-2xl p-3.5 flex items-center space-x-3.5 border border-[#05160E] transition-all duration-400";
+        speechPrefix.innerText = "這碗是我燙ê烏輪\uFF0C我烏輪內底有\uFF1A";
+        speechPrefix.className = "text-[10px] text-emerald-300 font-bold tracking-wider mb-0.5";
+        wrappedBadge.className = "mt-3 bg-[#E11D48] text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-sm flex items-center space-x-1";
+        wrappedBadgeText.innerText = "淋膏矣\uFF01緊來食\uFF01";
+
+        document.getElementById('tab-oden').className = "py-2 text-center font-black text-[10px] sm:text-xs rounded-t-xl transition-all duration-300 bg-[#123F27] text-[#FDF03A] border-b-2 border-[#FDF03A]";
+        loadTaiwanOdenGraphics();
+      }
+
+      wrappedState.classList.add('hidden');
+      unwrappedState.classList.remove('hidden', 'opacity-0', 'scale-75');
+      canvasHint.style.opacity = '1';
+
+      renderIngredients();
+      updateSentenceLayout();
+      updateEngineBadgeStyle();
+    }
+
+    // 5. GRAPHICS LOADERS (SVGs)
+    function loadZongziGraphics() {
+      // Unwrapped Bamboo Leaf
+      canvasBgGraphic.innerHTML = `
+        <svg class="w-52 h-52 drop-shadow-md animate-fade-in" viewBox="0 0 200 200" fill="none">
+          <path d="M15 110 C 40 160, 160 160, 185 110 C 160 60, 110 30, 100 20 C 90 30, 40 60, 15 110 Z" fill="#2d6e49"/>
+          <path d="M15 110 C 10 90, 40 40, 100 20 C 80 70, 45 100, 15 110 Z" fill="#1b5232"/>
+          <path d="M185 110 C 190 90, 160 40, 100 20 C 120 70, 155 100, 185 110 Z" fill="#23603b"/>
+          <path d="M100 20 Q 100 100 100 150" stroke="#123b20" stroke-width="1.5"/>
+          <path d="M55 110 C 55 80, 145 80, 145 110 C 145 135, 55 135, 55 110 Z" fill="#FAF8F0" stroke="#E5DEC9" stroke-width="2"/>
+          <ellipse cx="80" cy="105" rx="5" ry="3" fill="#FFFFFF" transform="rotate(20 80 105)" />
+          <ellipse cx="100" cy="100" rx="6" ry="4" fill="#FFFFFF" transform="rotate(-15 100 100)" />
+          <ellipse cx="120" cy="110" rx="5" ry="3" fill="#FFFFFF" transform="rotate(45 120 110)" />
+        </svg>
+      `;
+      // Completed Zongzi 3D Pyramid
+      completedGraphic.innerHTML = `
+        <svg class="w-full h-full drop-shadow-xl" viewBox="0 0 200 200" fill="none">
+          <path d="M100 30 L40 145 L100 175 Z" fill="#1b5232" stroke="#123b20" stroke-width="2"/>
+          <path d="M100 30 L100 175 L160 145 Z" fill="#2d6e49" stroke="#123b20" stroke-width="2"/>
+          <path d="M73 85 C 85 92, 115 92, 127 85" stroke="#E2C999" stroke-width="3" stroke-linecap="round"/>
+          <path d="M62 115 C 80 125, 120 125, 138 115" stroke="#D3B884" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      `;
+      // Swing hanger zongzi decoration
+      miniSwingToy.innerHTML = `
+        <svg class="w-6 h-6" viewBox="0 0 100 100" fill="none">
+          <path d="M50 10 L20 70 L50 90 L80 70 Z" fill="#2d6e49" stroke="#1b5232"/>
+          <path d="M50 10 L50 90 L80 70 Z" fill="#1b5232"/>
+          <path d="M35 55 Q 50 63 65 55" stroke="#D3B884" stroke-width="2"/>
+        </svg>
+      `;
+    }
+
+    function loadShavedIceGraphics() {
+      // Shaved Ice Bowl
+      canvasBgGraphic.innerHTML = `
+        <svg class="w-52 h-52 drop-shadow-md animate-fade-in" viewBox="0 0 200 200" fill="none">
+          <path d="M40 110 C 40 40, 160 40, 160 110 Z" fill="#FFFFFF" stroke="#E3F2FD" stroke-width="2"/>
+          <path d="M50 110 C 65 60, 135 60, 150 110 Z" fill="#F8FBFD"/>
+          <path d="M30 110 L170 110 L150 160 L50 160 Z" fill="#E1F5FE" stroke="#81D4FA" stroke-width="3" opacity="0.85"/>
+          <path d="M50 160 L150 160 L130 180 L70 180 Z" fill="#B3E5FC" stroke="#81D4FA" stroke-width="2"/>
+        </svg>
+      `;
+      // Completed Shaved Ice with Drizzled Condensed Milk
+      completedGraphic.innerHTML = `
+        <svg class="w-full h-full drop-shadow-lg" viewBox="0 0 200 200" fill="none">
+          <g class="steam-vapor" opacity="0.3">
+            <path d="M70 40 Q 80 30 90 40 T 110 40" stroke="#E1F5FE" stroke-width="3" stroke-linecap="round"/>
+          </g>
+          <path d="M40 110 C 40 40, 160 40, 160 110 Z" fill="#FFFFFF" stroke="#E3F2FD" stroke-width="2"/>
+          <path d="M50 110 C 65 60, 135 60, 150 110 Z" fill="#F8FBFD"/>
+          <path d="M100 45 Q 95 65 92 85" stroke="#FFF59D" stroke-width="8" stroke-linecap="round"/>
+          <path d="M75 55 Q 82 75 78 95" stroke="#FFF9C4" stroke-width="6" stroke-linecap="round"/>
+          <path d="M30 110 L170 110 L150 160 L50 160 Z" fill="#E1F5FE" stroke="#81D4FA" stroke-width="3" opacity="0.85"/>
+        </svg>
+      `;
+      // Shaved Ice flag decoration
+      miniSwingToy.innerHTML = `
+        <svg class="w-6 h-6" viewBox="0 0 100 100" fill="none">
+          <path d="M20 15 L80 15 L80 85 L50 70 L20 85 Z" fill="#FF1744" stroke="#D50000" stroke-width="1.5"/>
+          <circle cx="50" cy="45" r="15" fill="#FFFFFF"/>
+          <path d="M50 35 L50 55 M40 45 L60 45" stroke="#00B0FF" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      `;
+    }
+
+    function loadSpringRollGraphics() {
+      // Unwrapped Spring Roll Dough
+      canvasBgGraphic.innerHTML = `
+        <svg class="w-52 h-52 drop-shadow-md" viewBox="0 0 200 200" fill="none">
+          <circle cx="100" cy="100" r="75" fill="#FFF8F0" stroke="#EADCC9" stroke-width="3"/>
+          <circle cx="100" cy="100" r="68" fill="#FFFAF5" stroke="#F5EDE0" stroke-width="1" stroke-dasharray="3 3"/>
+        </svg>
+      `;
+      // Wrapped cylindrical Spring Roll
+      completedGraphic.innerHTML = `
+        <svg class="w-full h-full drop-shadow-xl" viewBox="0 0 200 200" fill="none">
+          <rect x="40" y="75" width="120" height="50" rx="18" fill="#FFF5EA" stroke="#D7CCC8" stroke-width="3"/>
+          <path d="M55 75 C 60 85, 60 115, 55 125" stroke="#E0D4C5" stroke-width="2"/>
+          <path d="M145 75 C 140 85, 140 115, 145 125" stroke="#E0D4C5" stroke-width="2"/>
+        </svg>
+      `;
+      // Mini spring roll decoration
+      miniSwingToy.innerHTML = `
+        <svg class="w-6 h-6" viewBox="0 0 100 100" fill="none">
+          <rect x="25" y="35" width="50" height="30" rx="6" fill="#D97706" stroke="#B45309" stroke-width="1.5"/>
+        </svg>
+      `;
+    }
+
+    function loadPearlTeaGraphics() {
+      // Cup base with light tea liquid
+      canvasBgGraphic.innerHTML = `
+        <svg class="w-52 h-52 drop-shadow-md animate-fade-in" viewBox="0 0 200 200" fill="none">
+          <path d="M60 25 L140 25 L120 165 L80 165 Z" fill="none" stroke="#A1A1A1" stroke-width="3.5"/>
+          <path d="M64 45 L136 45 L120 162 L80 162 Z" fill="#EAD8C3" opacity="0.8"/>
+          <!-- Ice cube vector outlines inside tea -->
+          <rect x="85" y="75" width="22" height="22" rx="4" fill="#FFFFFF" opacity="0.3" transform="rotate(15 96 86)"/>
+          <rect x="100" y="105" width="20" height="20" rx="4" fill="#FFFFFF" opacity="0.25" transform="rotate(-20 110 115)"/>
+        </svg>
+      `;
+      // Shaken Pearl Milk Tea (Finished Cup with Straw and Pearls)
+      completedGraphic.innerHTML = `
+        <svg class="w-full h-full drop-shadow-xl" viewBox="0 0 200 200" fill="none">
+          <!-- Straw -->
+          <path d="M100 10 L108 10 L92 165 L84 165 Z" fill="#FF6B6B" opacity="0.95"/>
+          <!-- Cup Glass -->
+          <path d="M60 25 L140 25 L120 165 L80 165 Z" fill="none" stroke="#A1A1A1" stroke-width="3.5"/>
+          <path d="M64 45 L136 45 L120 162 L80 162 Z" fill="#E5D0BA" opacity="0.9"/>
+          <!-- Cup Seal Lid -->
+          <path d="M55 25 L145 25 L140 32 L60 32 Z" fill="#FF8E53" stroke="#E27338" stroke-width="1.5"/>
+          <!-- Pearls at bottom -->
+          <circle cx="88" cy="148" r="8" fill="#1A1A1A"/>
+          <circle cx="103" cy="151" r="8" fill="#1A1A1A"/>
+          <circle cx="115" cy="144" r="8" fill="#1A1A1A"/>
+          <circle cx="95" cy="138" r="8" fill="#222222"/>
+          <circle cx="108" cy="134" r="8" fill="#111111"/>
+          <circle cx="82" cy="154" r="7" fill="#222222"/>
+          <circle cx="118" cy="153" r="7" fill="#1A1A1A"/>
+        </svg>
+      `;
+      // Mini Boba Tea Cup decoration
+      miniSwingToy.innerHTML = `
+        <svg class="w-6 h-6" viewBox="0 0 100 100" fill="none">
+          <path d="M35 25 L65 25 L60 75 L40 75 Z" fill="#EAD8C3" stroke="#8B5A2B" stroke-width="2"/>
+          <path d="M48 10 L52 10 L48 75 L44 75 Z" fill="#FF6B6B"/>
+          <circle cx="45" cy="65" r="3" fill="#1A1A1A"/>
+          <circle cx="50" cy="68" r="3" fill="#1A1A1A"/>
+          <circle cx="54" cy="64" r="3" fill="#1A1A1A"/>
+        </svg>
+      `;
+    }
+
+    function loadTaiwanOdenGraphics() {
+      // Nine-grid metal oden pot
+      canvasBgGraphic.innerHTML = `
+        <svg class="w-52 h-52 drop-shadow-md animate-fade-in" viewBox="0 0 200 200" fill="none">
+          <rect x="25" y="25" width="150" height="150" fill="#78716C" stroke="#44403C" stroke-width="4"/>
+          <!-- Soup Color Base -->
+          <rect x="33" y="33" width="134" height="134" fill="#FEF3C7" opacity="0.35"/>
+          <!-- Grids -->
+          <line x1="77" y1="27" x2="77" y2="173" stroke="#E7E5E4" stroke-width="3"/>
+          <line x1="123" y1="27" x2="123" y2="173" stroke="#E7E5E4" stroke-width="3"/>
+          <line x1="27" y1="77" x2="173" y2="77" stroke="#E7E5E4" stroke-width="3"/>
+          <line x1="27" y1="123" x2="173" y2="123" stroke="#E7E5E4" stroke-width="3"/>
+        </svg>
+      `;
+      // Cooked Oden bowl with sweet chili sauce drizzle
+      completedGraphic.innerHTML = `
+        <svg class="w-full h-full drop-shadow-xl" viewBox="0 0 200 200" fill="none">
+          <g class="steam-vapor" opacity="0.4">
+            <path d="M80 35 Q 90 20 100 35 T 120 35" stroke="#E7E5E4" stroke-width="3" stroke-linecap="round"/>
+          </g>
+          <!-- Bowl -->
+          <ellipse cx="100" cy="115" rx="65" ry="32" fill="#E5E7EB" stroke="#9CA3AF" stroke-width="3"/>
+          <ellipse cx="100" cy="100" rx="63" ry="18" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1.5"/>
+          <!-- Oden Food Blocks stacked inside bowl -->
+          <rect x="65" y="80" width="30" height="30" rx="4" fill="#FCD34D" transform="rotate(15 80 95)" opacity="0.9"/>
+          <circle cx="115" cy="85" r="16" fill="#D1FAE5" opacity="0.9"/>
+          <rect x="90" y="90" width="45" height="20" rx="3" fill="#DDB892" transform="rotate(-10 112 100)" opacity="0.95"/>
+          <!-- Sweet Chili Sauce Drizzle (Vibrant Red Sauce Line) -->
+          <path d="M55 92 C 75 110, 115 112, 145 94 C 120 115, 80 115, 55 92 Z" fill="#EF4444" opacity="0.9"/>
+        </svg>
+      `;
+      // Mini oden stick decoration
+      miniSwingToy.innerHTML = `
+        <svg class="w-6 h-6" viewBox="0 0 100 100" fill="none">
+          <!-- Stick -->
+          <line x1="50" y1="15" x2="50" y2="90" stroke="#D7CCC8" stroke-width="4"/>
+          <!-- Oden block shapes -->
+          <polygon points="50,15 32,38 68,38" fill="#DDB892" stroke="#B45309" stroke-width="1.5"/>
+          <circle cx="50" cy="51" r="13" fill="#FCD34D" stroke="#D97706" stroke-width="1.5"/>
+          <rect x="36" y="65" width="28" height="15" fill="#A8A29E" stroke="#78716C" stroke-width="1.5"/>
+        </svg>
+      `;
+    }
+
+    // 6. RENDER CARD ITEMS
+    function renderIngredients() {
+      gridEl.innerHTML = '';
+      let list = zongziIngredients;
+      if (currentMode === 'shavedIce') list = shavedIceIngredients;
+      if (currentMode === 'springRoll') list = springRollIngredients;
+      if (currentMode === 'pearlMilkTea') list = pearlTeaIngredients;
+      if (currentMode === 'taiwanOden') list = odenIngredients;
+
+      list.forEach(ing => {
+        const count = basket[ing.id] || 0;
+        
+        const card = document.createElement('div');
+        card.className = "bg-white p-2.5 rounded-xl border border-[#F3EAD3] flex flex-col items-center select-none relative shadow-sm hover:scale-[1.02] transition-transform";
+        
+        // Emoji
+        const emojiDiv = document.createElement('div');
+        emojiDiv.className = "text-3xl mb-1 filter drop-shadow-sm pointer-events-none";
+        emojiDiv.innerText = ing.emoji;
+        card.appendChild(emojiDiv);
+
+        // Word texts
+        const textWrapper = document.createElement('div');
+        textWrapper.className = "text-center mb-2";
+
+        const labelSpan = document.createElement('span');
+        labelSpan.className = "block text-xs font-extrabold text-slate-800 cursor-pointer hover:text-emerald-700 transition-colors";
+        labelSpan.innerHTML = `${ing.name} <i class="fa-solid fa-volume-high text-[9px] text-slate-400 ml-0.5"></i>`;
+        
+        labelSpan.addEventListener('pointerdown', (e) => {
+          e.preventDefault();
+          playSingleIngredientVoice(ing.name, labelSpan);
+        });
+
+        const romanSpan = document.createElement('span');
+        romanSpan.className = "block text-[9px] text-emerald-600 font-semibold font-mono bg-emerald-50 px-1.5 py-0.5 rounded-full mt-0.5";
+        romanSpan.innerText = ing.sub;
+
+        textWrapper.appendChild(labelSpan);
+        textWrapper.appendChild(romanSpan);
+        card.appendChild(textWrapper);
+
+        // Controls
+        const ctrlsDiv = document.createElement('div');
+        ctrlsDiv.className = "flex items-center w-full justify-between bg-slate-50 border border-slate-150 rounded-lg p-0.5";
+
+        const minusBtn = document.createElement('button');
+        minusBtn.className = "w-6 h-6 bg-[#FFEBEB] text-[#FF5B5B] hover:bg-red-100 font-extrabold rounded-md flex items-center justify-center transition-all focus:outline-none text-xs";
+        minusBtn.innerText = "-";
+        minusBtn.addEventListener('pointerdown', (e) => {
+          e.preventDefault();
+          changeIngredientCount(ing.id, -1, labelSpan);
+        });
+
+        const qtySpan = document.createElement('span');
+        qtySpan.id = `qty-${ing.id}`;
+        qtySpan.className = "text-xs font-black text-slate-700 w-5 text-center";
+        qtySpan.innerText = count;
+
+        const plusBtn = document.createElement('button');
+        plusBtn.className = "w-6 h-6 bg-[#E8F8F5] text-[#1ABC9C] hover:bg-emerald-100 font-extrabold rounded-md flex items-center justify-center transition-all focus:outline-none text-xs";
+        plusBtn.innerText = "+";
+        plusBtn.addEventListener('pointerdown', (e) => {
+          e.preventDefault();
+          changeIngredientCount(ing.id, 1, labelSpan);
+        });
+
+        ctrlsDiv.appendChild(minusBtn);
+        ctrlsDiv.appendChild(qtySpan);
+        ctrlsDiv.appendChild(plusBtn);
+        card.appendChild(ctrlsDiv);
+
+        gridEl.appendChild(card);
+      });
+    }
+
+    // 7. Counter Actions
+    function changeIngredientCount(id, delta, triggerNode) {
+      if (isWrapped) {
+        showFloatingToast("⚠️ 已經包裝好矣\uFF01請先點擊「閣再來」或展開成品\uFF0C再來調整配料喔\uFF01");
+        return;
+      }
+      unlockAudioPipeline();
+
+      let list = zongziIngredients;
+      if (currentMode === 'shavedIce') list = shavedIceIngredients;
+      if (currentMode === 'springRoll') list = springRollIngredients;
+      if (currentMode === 'pearlMilkTea') list = pearlTeaIngredients;
+      if (currentMode === 'taiwanOden') list = odenIngredients;
+
+      const ing = list.find(i => i.id === id);
+      const current = basket[id] || 0;
+      const next = Math.max(0, current + delta);
+
+      basket[id] = next;
+      document.getElementById(`qty-${id}`).innerText = next;
+
+      if (delta > 0) {
+        spawnEmojiInCanvas(ing);
+        playSingleIngredientVoice(ing.name, triggerNode);
+      } else if (delta < 0) {
+        removeEmojiFromCanvas(id);
+      }
+      updateSentenceLayout();
+    }
+
+    // 8. Canvas Draggable system
+    function spawnEmojiInCanvas(ing) {
+      canvasHint.style.opacity = '0';
+
+      const el = document.createElement('div');
+      const uniqueId = 'canvas-item-' + Date.now() + Math.random().toString(36).substr(2, 3);
+      el.id = uniqueId;
+      el.className = "drag-item absolute cursor-grab select-none active:cursor-grabbing z-20 p-1 group";
+
+      const bounds = spawnContainer.getBoundingClientRect();
+      const randX = (bounds.width / 2) + (Math.random() * 60 - 30) - 16;
+      const randY = (bounds.height / 2) + (Math.random() * 60 - 30) - 16;
+      const randAngle = Math.floor(Math.random() * 360);
+
+      el.style.left = `${randX}px`;
+      el.style.top = `${randY}px`;
+      el.style.transform = `rotate(${randAngle}deg)`;
+
+      el.addEventListener('dragstart', (e) => e.preventDefault());
+      el.innerHTML = `
+        <div class="text-3xl pointer-events-none filter drop-shadow transition-transform hover:scale-115">${ing.emoji}</div>
+        <div class="control-ring opacity-0 group-hover:opacity-100 absolute -top-3 -left-3 w-12 h-12 border border-dashed border-emerald-600 rounded-full pointer-events-none flex items-center justify-between">
+          <div class="absolute -top-1.5 left-1/2 -translate-x-1/2 w-4.5 h-4.5 bg-emerald-600 rounded-full flex items-center justify-center text-white text-[8px] cursor-pointer pointer-events-auto shadow btn-rotate">
+            <i class="fa-solid fa-sync"></i>
+          </div>
+          <div class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-4.5 h-4.5 bg-red-500 rounded-full flex items-center justify-center text-white text-[8px] cursor-pointer pointer-events-auto shadow btn-delete">
+            <i class="fa-solid fa-trash-can"></i>
+          </div>
+        </div>
+      `;
+
+      spawnContainer.appendChild(el);
+
+      const itemData = { id: uniqueId, ingId: ing.id, x: randX, y: randY, angle: randAngle, dom: el };
+      canvasItems.push(itemData);
+      bindItemDragAndRotation(itemData);
+    }
+
+    function removeEmojiFromCanvas(ingId) {
+      const idx = canvasItems.map(x => x.ingId).lastIndexOf(ingId);
+      if (idx !== -1) {
+        canvasItems[idx].dom.remove();
+        canvasItems.splice(idx, 1);
+      }
+      if (canvasItems.length === 0) canvasHint.style.opacity = '1';
+    }
+
+    function bindItemDragAndRotation(item) {
+      const el = item.dom;
+      let dragging = false;
+      let startX, startY, itemX, itemY;
+
+      el.addEventListener('pointerdown', (e) => {
+        if (isWrapped) return;
+        if (e.target.closest('.btn-rotate') || e.target.closest('.btn-delete')) return;
+
+        dragging = true;
+        el.setPointerCapture(e.pointerId);
+        startX = e.clientX; startY = e.clientY;
+        itemX = parseFloat(el.style.left); itemY = parseFloat(el.style.top);
+        e.stopPropagation();
+      });
+
+      el.addEventListener('pointermove', (e) => {
+        if (!dragging) return;
+        const bounds = spawnContainer.getBoundingClientRect();
+        let nx = itemX + (e.clientX - startX);
+        let ny = itemY + (e.clientY - startY);
+
+        nx = Math.max(0, Math.min(bounds.width - 32, nx));
+        ny = Math.max(0, Math.min(bounds.height - 32, ny));
+
+        el.style.left = `${nx}px`; el.style.top = `${ny}px`;
+        item.x = nx; item.y = ny;
+      });
+
+      const stopDrag = (e) => {
+        if (dragging) { dragging = false; el.releasePointerCapture(e.pointerId); }
+      };
+      el.addEventListener('pointerup', stopDrag);
+      el.addEventListener('pointercancel', stopDrag);
+
+      // Rotate
+      const rot = el.querySelector('.btn-rotate');
+      let rotating = false, centerAngle = 0;
+      rot.addEventListener('pointerdown', (e) => {
+        rotating = true; rot.setPointerCapture(e.pointerId);
+        const rect = el.getBoundingClientRect();
+        const cx = rect.left + rect.width/2; const cy = rect.top + rect.height/2;
+        centerAngle = Math.atan2(e.clientY - cy, e.clientX - cx) * (180/Math.PI) - item.angle;
+        e.stopPropagation();
+      });
+
+      rot.addEventListener('pointermove', (e) => {
+        if (!rotating) return;
+        const rect = el.getBoundingClientRect();
+        const cx = rect.left + rect.width/2; const cy = rect.top + rect.height/2;
+        let calculated = (Math.atan2(e.clientY - cy, e.clientX - cx) * (180/Math.PI)) - centerAngle;
+        item.angle = calculated; el.style.transform = `rotate(${calculated}deg)`;
+      });
+
+      const stopRot = (e) => {
+        if (rotating) { rotating = false; rot.releasePointerCapture(e.pointerId); }
+      };
+      rot.addEventListener('pointerup', stopRot);
+      rot.addEventListener('pointercancel', stopRot);
+
+      // Delete
+      el.querySelector('.btn-delete').addEventListener('pointerdown', (e) => {
+        e.stopPropagation(); el.remove();
+        canvasItems = canvasItems.filter(x => x.id !== item.id);
+        basket[item.ingId] = Math.max(0, (basket[item.ingId] || 1) - 1);
+        
+        const qtyLabel = document.getElementById(`qty-${item.ingId}`);
+        if (qtyLabel) qtyLabel.innerText = basket[item.ingId];
+
+        if (canvasItems.length === 0) canvasHint.style.opacity = '1';
+        updateSentenceLayout();
+      });
+    }
+
+    // 9. Wrap Finish Actions
+    function toggleWrapState() {
+      if (canvasItems.length === 0) {
+        let msg = "⚠️ 裡面空空\uFF0C請先加入配料唷\uFF01";
+        if (currentMode === 'zongzi') msg = "⚠️ 您的肉粽內底空空\uFF0C請先加入配料喔\uFF01";
+        else if (currentMode === 'shavedIce') msg = "⚠️ 您的冰碗內底空空\uFF0C請先加入好料喔\uFF01";
+        else if (currentMode === 'springRoll') msg = "⚠️ 您的潤餅皮內底空空\uFF0C請先加入好料喔\uFF01";
+        else if (currentMode === 'pearlMilkTea') msg = "⚠️ 您的珍奶杯內底空空\uFF0C請先加入好料喔\uFF01";
+        else if (currentMode === 'taiwanOden') msg = "⚠️ 您的烏輪鍋內底空空\uFF0C請先加入好料喔\uFF01";
+        showFloatingToast(msg);
+        return;
+      }
+
+      isWrapped = !isWrapped;
+
+      if (isWrapped) {
+        if (currentMode === 'pearlMilkTea') {
+          // Boba shaker shake micro-animation
+          document.getElementById('canvas-area').classList.add('animate-bounce');
+          setTimeout(() => { document.getElementById('canvas-area').classList.remove('animate-bounce'); }, 800);
+        }
+        unwrappedState.classList.add('opacity-0', 'scale-75');
+        setTimeout(() => {
+          unwrappedState.classList.add('hidden');
+          wrappedState.classList.remove('hidden');
+          wrappedState.classList.add('opacity-100', 'scale-100');
+
+          let colors = ['#2d6e49', '#FAF2E5'];
+          if (currentMode === 'shavedIce') colors = ['#0284C7', '#B3E5FC', '#FFF59D', '#FF1744', '#FFFFFF'];
+          else if (currentMode === 'springRoll') colors = ['#B45309', '#FFF5EA', '#D97706'];
+          else if (currentMode === 'pearlMilkTea') colors = ['#8B5A2B', '#E5D0BA', '#FF6B6B', '#1A1A1A'];
+          else if (currentMode === 'taiwanOden') colors = ['#123F27', '#FEF3C7', '#EF4444', '#DDB892'];
+
+          confetti({ particleCount: 80, spread: 50, origin: { y: 0.75 }, colors: colors });
+        }, 150);
+
+        finishText.innerText = currentMode === 'zongzi' ? "解開肉粽" : (currentMode==='shavedIce'?"融化礤冰":(currentMode==='springRoll'?"展開潤餅":(currentMode==='pearlMilkTea'?"重搖珍奶":"重燙烏輪")));
+        let doneMsg = "🎉 包裝完成\uFF01";
+        if (currentMode==='zongzi') doneMsg = "🎉 肉粽綁好了\uFF01香味撲鼻\uFF01";
+        else if (currentMode==='shavedIce') doneMsg = "🍧 牛奶膏淋好了\uFF01甜粅粅\uFF0C真好食\uFF01";
+        else if (currentMode==='springRoll') doneMsg = "🌯 潤餅包好矣\uFF01真芳\uFF0C緊來食\uFF01";
+        else if (currentMode==='pearlMilkTea') doneMsg = "🧋 珍奶搖好矣\uFF01誠香誠好飲\uFF01";
+        else if (currentMode==='taiwanOden') doneMsg = "🍢 烏輪燙好矣\uFF01熱呼呼淋膏囉\uFF01";
+        showFloatingToast(doneMsg);
+      } else {
+        wrappedState.classList.add('opacity-0', 'scale-75');
+        setTimeout(() => {
+          wrappedState.classList.add('hidden');
+          unwrappedState.classList.remove('hidden');
+          unwrappedState.classList.add('opacity-100', 'scale-100');
+        }, 150);
+        finishText.innerText = currentMode === 'zongzi' ? "我綁好矣\uFF01" : (currentMode==='shavedIce'?"我礤好矣\uFF01":(currentMode==='springRoll'?"我包好矣\uFF01":(currentMode==='pearlMilkTea'?"我搖好矣\uFF01":"我燙好矣\uFF01")));
+      }
+      updateSentenceLayout();
+    }
+
+    // 10. Restart Action
+    function restartAction() {
+      basket = {}; canvasItems = []; spawnContainer.innerHTML = ''; isWrapped = false;
+      if (activeAudio) { activeAudio.pause(); activeAudio = null; }
+      
+      renderIngredients();
+      wrappedState.classList.add('hidden');
+      unwrappedState.classList.remove('hidden', 'opacity-0', 'scale-75');
+      canvasHint.style.opacity = '1';
+
+      finishText.innerText = currentMode === 'zongzi' ? "我綁好矣\uFF01" : (currentMode==='shavedIce'?"我礤好矣\uFF01":(currentMode==='springRoll'?"我包好矣\uFF01":(currentMode==='pearlMilkTea'?"我搖好矣\uFF01":"我燙好矣\uFF01")));
+      updateSentenceLayout();
+      
+      let clearMsg = "🔄 已經清予乾淨\uFF0C閣再來\uFF01";
+      if (currentMode === 'zongzi') clearMsg = "🔄 已清理\uFF0C包新的一顆肉粽\uFF01";
+      else if (currentMode === 'shavedIce') clearMsg = "🔄 已清理\uFF0C礤一碗新礤冰\uFF01";
+      else if (currentMode === 'springRoll') clearMsg = "🔄 已清理\uFF0C包一捲新潤餅\uFF01";
+      else if (currentMode === 'pearlMilkTea') clearMsg = "🔄 已清理\uFF0C搖一杯新珍奶\uFF01";
+      else if (currentMode === 'taiwanOden') clearMsg = "🔄 已清理\uFF0C燙一鍋新烏輪\uFF01";
+      showFloatingToast(clearMsg);
+    }
+
+    // 11. Dynamic speech sentence update
+    function updateSentenceLayout() {
+      let list = zongziIngredients;
+      if (currentMode === 'shavedIce') list = shavedIceIngredients;
+      if (currentMode === 'springRoll') list = springRollIngredients;
+      if (currentMode === 'pearlMilkTea') list = pearlTeaIngredients;
+      if (currentMode === 'taiwanOden') list = odenIngredients;
+
+      const activeIngredients = list.filter(ing => basket[ing.id] > 0);
+
+      if (activeIngredients.length === 0) {
+        let hint = "(請點選上方配料 + khǹg入肉粽內底...)";
+        if (currentMode === 'shavedIce') hint = "(請點選上方配料 + khǹg入礤冰內底...)";
+        else if (currentMode === 'springRoll') hint = "(請點選上方配料 + 放在潤餅皮上...)";
+        else if (currentMode === 'pearlMilkTea') hint = "(請點選上方配料 + khǹg入珍奶杯中...)";
+        else if (currentMode === 'taiwanOden') hint = "(請點選上方配料 + khǹg入烏輪鐵鍋中...)";
+
+        speechSentenceEl.innerHTML = `<span class="text-emerald-300 font-normal opacity-60">${hint}</span>`;
+        return;
+      }
+
+      let parsedElements = activeIngredients.map(ing => {
+        const count = basket[ing.id];
+        return `${ing.name} ${count}个`;
+      });
+
+      let formattedOutput = "";
+      if (parsedElements.length === 1) {
+        formattedOutput = parsedElements[0];
+      } else {
+        const lastElement = parsedElements.pop();
+        formattedOutput = parsedElements.join('\u3001') + "\uFF0C閣有 " + lastElement;
+      }
+
+      speechSentenceEl.innerText = formattedOutput + "\uFF01";
+    }
+
+    // ========================================================
+    // 12. DUAL-MODE SPEECH SYNTHESIS ENGINE (Cloud + Offline Fallback)
+    // ========================================================
+    
+    // Homophonic Translation Dictionary for Mandarin TTS reading Taiwanese words
+    const taigiPhoneticMap = {
+      "這杯是我搖ê珍奶\uFF0C我珍奶內底有": "基杯夕哇搖欸珍奶\uFF0C哇欸珍奶賴得屋",
+      "這碗是我燙ê烏輪\uFF0C我烏輪內底有": "基碗夕哇燙欸烏連\uFF0C哇欸烏連賴得屋",
+      // General Actions
+      "這局是我縛ê肉粽\uFF0C我肉粽內底有": "基夕哇欸霸掌\uFF0C哇欸霸掌賴得屋",
+      "這碗是我礤ê礤冰\uFF0C我礤冰內底有": "基碗夕哇搓欸搓冰\uFF0C哇欸搓冰賴得屋",
+      "我礤ê礤冰內底有": "哇欸搓冰賴得屋",
+      "我礤ê礤冰內底有": "哇欸搓冰賴得屋",
+      "這局是我包 of 的春捲\uFF0C我春捲內底有": "基局夕哇包欸尊滾\uFF0C哇欸尊滾賴得屋",
+      "這局是我包ê春捲\uFF0C我春捲內底有": "基局夕哇包欸尊滾\uFF0C哇欸尊滾賴得屋",
+      "這局是我包的春捲\uFF0C內底有": "基局夕哇包欸尊滾\uFF0C賴得屋",
+      "這局是我包ê潤餅\uFF0C我潤餅內底有": "基局夕哇包欸論鞭\uFF0C哇欸論鞭賴得屋",
+      "這局是我包的潤餅\uFF0C內底有": "基局夕哇包欸論鞭\uFF0C賴得屋",
+      "這記錄是我包的春捲\uFF0C我春捲內底有": "基夕哇包欸尊滾\uFF0C哇欸尊滾賴得屋", // Keep for compatibility
+      "這是我包的春捲\uFF0C我春捲內底有": "基夕哇包欸尊滾\uFF0C哇欸尊滾賴得屋",
+      "這是我包 of 的春捲\uFF0C我春捲內底有": "基夕哇包欸尊滾\uFF0C哇欸尊滾賴得屋", // Keep for compatibility
+      "這是我包ê潤餅\uFF0C我潤餅內底有": "基夕哇包欸論鞭\uFF0C哇欸論鞭賴得屋",
+      "這是我搖的珍奶\uFF0C我珍奶內底有": "基夕哇搖欸珍奶\uFF0C哇欸珍奶賴得屋",
+      "這局是我礤ê礤冰\uFF0C我礤冰內底有": "基局夕哇搓欸搓冰\uFF0C哇欸搓冰賴得屋",
+      "這局是我包ê春捲\uFF0C我春捲內底有": "基局夕哇包欸尊滾\uFF0C哇欸尊滾賴得屋",
+      "這局是我包的春捲\uFF0C內底有": "基局夕哇包欸尊滾\uFF0C賴得屋",
+      "這碗是我燙ê烏輪\uFF0C我烏輪內底有": "基碗夕哇燙欸烏連\uFF0C哇欸烏連賴得屋",
+      "我的肉粽內底有": "哇欸霸掌賴得屋",
+      "我礤ê礤冰內底有": "哇欸搓冰賴得屋",
+      "我春捲內底有": "哇欸尊滾賴得屋",
+      "我潤餅內底有": "哇欸論鞭賴得屋",
+      "我珍奶內底有": "哇欸珍奶賴得屋",
+      "我烏輪內底有": "哇欸烏連賴得屋",
+      "閣有": "扣屋",
+      "內底有": "賴得屋",
+      "這是我": "基夕哇",
+      "已經包好矣\uFF0C真芳\uFF0C緊來食": "以經包好啊\uFF0C金胖\uFF0C緊來甲",
+      "已經縛好矣\uFF0C芳貢貢喔": "以經邦好啊\uFF0C胖貢貢喔",
+      "已經縛好矣\uFF0C芳貢貢": "以經邦好啊\uFF0C胖貢貢",
+      "淋牛奶膏矣\uFF0C甜粅粅喔": "林吳乃勾阿\uFF0C電莫莫喔",
+      "搖予勻矣\uFF0C誠芳誠好飲": "尤齁溫阿\uFF0C行胖行好林",
+      "搖予勻矣\uFF01誠芳誠好飲": "尤齁溫阿\uFF01行胖行好林",
+      "淋膏矣\uFF0C緊來食": "藍高阿\uFF0C緊來甲",
+      "欲準備來包矣": "貝準逼來包阿",
+      "欲準備來縛矣": "貝準逼來邦阿",
+      "欲準備淋牛奶膏矣": "貝準逼林吳乃勾阿",
+      "欲準備來搖矣": "貝準逼來尤阿",
+      "欲準備來燙矣": "貝準逼來燙阿",
+
+      // Zongzi ingredients
+      "卵仁": "冷金",
+      "香菇": "黑嗯菇",
+      "塗豆": "投豆",
+      "滷肉": "羅霸",
+      "栗子": "辣茲",
+      "蝦米": "黑米",
+      "魷魚": "尤黑",
+      "鹹鴨卵": "兼啊冷",
+
+      // Shaved Ice ingredients
+      "紅豆": "昂豆",
+      "綠豆": "力豆",
+      "粉圓": "混贏",
+      "芋圓": "喔影",
+      "愛玉": "愛優",
+      "仙草": "鮮草",
+      "粉粿": "混貴",
+      "牛奶膏": "吳乃勾",
+
+      // Spring roll ingredients
+      "花生粉": "投豆粉",
+      "糖粉": "騰粉",
+      "高麗菜": "高雷菜",
+      "豆芽菜": "豆啊菜",
+      "紅糟肉": "昂遭霸",
+      "豆乾": "豆官",
+      "煎蛋絲": "尖冷絲",
+      "芫荽": "沿雖",
+
+      // Pearl milk tea ingredients
+      "椰果": "爺狗",
+      "布丁": "玻丁",
+      "冰塊": "冰怪",
+      "綠茶凍": "力得棟",
+      "寒天": "含天",
+      "芋泥": "喔泥",
+
+      // Oden ingredients
+      "烏輪": "烏連",
+      "甜不辣": "天鋪拉",
+      "米血": "米會",
+      "甜辣醬": "電辣將",
+      "菜頭": "蔡頭",
+      "貢丸": "共丸",
+      "魚丸": "黑丸",
+      "油豆腐": "由豆湖"
+    };
+
+    const taigiAudioMap = {
+      // Zongzi
+      "卵仁": ["02987"],
+      "香菇": ["05658"],
+      "土豆": ["09404"],
+      "塗豆": ["09404"],
+      "滷肉": ["10613"],
+      "魯肉": ["10613"],
+      "栗子": ["06116"],
+      "蝦米": ["11369"],
+      "魷魚": ["13083"],
+      "鹹鴨卵": ["13087", "12135"],
+      
+      // Shaved Ice
+      "紅豆": ["53611"],
+      "綠豆": ["10745"],
+      "粉圓": ["06478"],
+      "芋圓": ["03492"],
+      "愛玉": ["12372"],
+      "仙草": ["01362"],
+      "粉粿": ["06487"],
+      "牛奶膏": ["01238", "10814"],
+      
+      // Spring Roll
+      "花生粉": ["09404", "06451"],
+      "糖粉": ["11879"],
+      "高麗菜": ["06926"],
+      "豆芽菜": ["03486"],
+      "紅糟肉": ["05454"],
+      "豆乾": ["03470"],
+      "煎蛋絲": ["09717", "02967", "08860"],
+      "芫荽": ["04477"],
+      "潤餅": ["11235"],
+      
+      // Pearl Milk Tea
+      "椰果": ["09597", "04210"],
+      "布丁": ["01652", "00046"],
+      "冰塊": ["02113"],
+      "綠茶凍": ["10729", "06559", "05738"],
+      "寒天": ["08325"],
+      "芋泥": ["03448"],
+      
+      // Oden
+      "烏輪": ["06248", "11511"],
+      "甜不辣": ["00792", "07159", "10888"],
+      "米血": ["02599", "02615"],
+      "甜辣醬": ["07655", "10888", "12686"],
+      "菜頭": ["08996"],
+      "貢丸": ["06707"],
+      "魚丸": ["08115"],
+      "油豆腐": ["03504"]
+    };
+
+    const numberAudioMap = {
+      1: ["00001"],
+      2: ["03597"],
+      3: ["00170"],
+      4: ["01418"],
+      5: ["00574"],
+      6: ["00587"],
+      7: ["00047"],
+      8: ["00055"],
+      9: ["00048"],
+      10: ["00061"]
+    };
+
+    function translateToPhoneticTaigi(rawChineseText) {
+      let result = rawChineseText;
+      
+      // Replace words dynamically based on length descending
+      const keysSorted = Object.keys(taigiPhoneticMap).sort((a, b) => b.length - a.length);
+      for (let key of keysSorted) {
+        const regex = new RegExp(key, 'g');
+        result = result.replace(regex, taigiPhoneticMap[key]);
+      }
+      
+      // Numbers replacement
+      result = result.replace(/1[个個]/g, "基欸");
+      result = result.replace(/2[个個]/g, "冷欸");
+      result = result.replace(/3[個个]/g, "沙欸");
+      result = result.replace(/4[个個]/g, "夕欸");
+      result = result.replace(/5[个個]/g, "喔欸");
+      result = result.replace(/6[个個]/g, "力欸");
+      result = result.replace(/7[个個]/g, "七欸");
+      result = result.replace(/8[个個]/g, "北欸");
+      result = result.replace(/9[个個]/g, "告欸");
+      result = result.replace(/10[个個]/g, "雜欸");
+      
+      return result;
+    }
+
+    let activeQueueAudio = null;
+    let queueCancelToken = 0;
+
+    function playTaigiTTS(phraseText, buttonIconElement, segmentIds = null) {
+      unlockAudioPipeline();
+
+      // Cancel any currently playing queue or synthesis
+      queueCancelToken++;
+      const token = queueCancelToken;
+
+      if (activeQueueAudio) {
+        activeQueueAudio.pause();
+        activeQueueAudio = null;
+      }
+      if (activeAudio) {
+        activeAudio.pause();
+        activeAudio = null;
+      }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+
+      // If segmentIds is not passed, check if we can resolve the single word
+      if (!segmentIds && taigiAudioMap[phraseText]) {
+        segmentIds = taigiAudioMap[phraseText];
+      }
+
+      const originalClass = buttonIconElement ? buttonIconElement.className : "fa-solid fa-microphone text-lg";
+
+      if (segmentIds && segmentIds.length > 0) {
+        // Option A: Play using MoeDict audio queue (Stitching)
+        if (buttonIconElement) {
+          buttonIconElement.className = "fa-solid fa-volume-high text-lg text-emerald-800 animate-bounce";
+        }
+        setEngineBadgeStatus('real');
+
+        let index = 0;
+
+        function playNextSegment() {
+          if (token !== queueCancelToken) return;
+
+          if (index >= segmentIds.length) {
+            if (buttonIconElement) buttonIconElement.className = originalClass;
+            return;
+          }
+
+          const id = segmentIds[index];
+          // Handle pseudo-segments
+          if (id === 'comma' || id === 'period' || id === 'pause') {
+            const delay = id === 'period' ? 650 : 350;
+            activeQueueAudio = {
+              pause: () => { clearTimeout(pauseTimeout); }
+            };
+            const pauseTimeout = setTimeout(() => {
+              if (token !== queueCancelToken) return;
+              index++;
+              playNextSegment();
+            }, delay);
+            return;
+          }
+
+          const isLocal = window.location.protocol === 'file:' || 
+                          window.location.hostname === 'localhost' || 
+                          window.location.hostname === '127.0.0.1';
+          const localUrl = `audio/${id}.ogg`;
+          const cdnUrl = `https://1763c5ee9859e0316ed6-db85b55a6a3fbe33f09b9245992383bd.ssl.cf1.rackcdn.com/${id}.ogg`;
+
+          let audio = new Audio();
+          activeQueueAudio = audio;
+          audio.src = isLocal ? localUrl : cdnUrl;
+
+          audio.onended = () => {
+            index++;
+            playNextSegment();
+          };
+
+          audio.onerror = () => {
+            if (isLocal && !audio.src.startsWith('https://')) {
+              console.warn(`Local audio failed for ${id}, trying MoeDict CDN...`);
+              if (token !== queueCancelToken) return;
+
+              let cdnAudio = new Audio();
+              activeQueueAudio = cdnAudio;
+              cdnAudio.src = cdnUrl;
+              cdnAudio.onended = () => {
+                index++;
+                playNextSegment();
+              };
+              cdnAudio.onerror = () => {
+                console.error(`CDN audio failed for ${id}. Skipping.`);
+                index++;
+                playNextSegment();
+              };
+              cdnAudio.play().catch(() => {
+                index++;
+                playNextSegment();
+              });
+            } else {
+              console.error(`Audio failed for ${id}. Skipping.`);
+              index++;
+              playNextSegment();
+            }
+          };
+
+          audio.play().catch(() => {
+            audio.onerror();
+          });
+        }
+
+        playNextSegment();
+      } else {
+        // Option B: Fallback to old Google Translate TTS (if online) or local homophones
+        let cleanText = phraseText
+          .replace(/塗豆/g, "土豆")
+          .replace(/滷肉/g, "魯肉")
+          .replace(/粉粿/g, "粉粿")
+          .replace(/烏輪/g, "黑輪")
+          .replace(/甜不辣/g, "甜不辣")
+          .replace(/甜粅粅/g, "甜物物");
+
+        const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=nan&client=gtx&q=${encodeURIComponent(cleanText)}`;
+
+        if (buttonIconElement) {
+          buttonIconElement.className = "fa-solid fa-volume-high text-lg text-emerald-800 animate-bounce";
+        }
+
+        activeAudio = new Audio();
+        activeAudio.referrerPolicy = "no-referrer";
+        activeAudio.src = url;
+
+        activeAudio.onended = () => {
+          if (buttonIconElement) buttonIconElement.className = originalClass;
+          setEngineBadgeStatus('google');
+        };
+
+        activeAudio.onerror = () => {
+          console.warn("Google Translate TTS failed. Transitioning to local fallback...");
+          if (buttonIconElement) buttonIconElement.className = originalClass;
+          playOfflineVoiceEngine(phraseText, buttonIconElement);
+        };
+
+        activeAudio.play().then(() => {
+          setEngineBadgeStatus('google');
+        }).catch(err => {
+          console.warn("Google Translate TTS autoplay blocked. Transitioning to local fallback:", err);
+          if (buttonIconElement) buttonIconElement.className = originalClass;
+          playOfflineVoiceEngine(phraseText, buttonIconElement);
+        });
+      }
+    }
+
+    function playOfflineVoiceEngine(phraseText, buttonIconElement) {
+      if (!('speechSynthesis' in window)) {
+        showFloatingToast("🔊 您的裝置瀏覽器不支援語音播放功能\u3002");
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+
+      // Convert chinese phrase text to phonetic equivalent
+      const phoneticText = translateToPhoneticTaigi(phraseText);
+      console.log("Synthesizing offline homophones:", phoneticText);
+
+      const utterance = new SpeechSynthesisUtterance(phoneticText);
+      utterance.lang = "zh-TW"; // Feed to local Taiwan voice profile
+      utterance.rate = 0.80;    // Pedagogical slower pacing
+      utterance.pitch = 1.0;
+
+      const availableVoices = window.speechSynthesis.getVoices();
+      const taiwanVoice = availableVoices.find(v => v.lang.includes("zh-TW"));
+      if (taiwanVoice) {
+        utterance.voice = taiwanVoice;
+      }
+
+      const originalClass = buttonIconElement ? buttonIconElement.className : "fa-solid fa-microphone text-lg";
+      
+      utterance.onstart = () => {
+        if (buttonIconElement) {
+          buttonIconElement.className = "fa-solid fa-volume-high text-lg text-emerald-800 animate-bounce";
+        }
+        setEngineBadgeStatus('local');
+      };
+
+      utterance.onend = () => {
+        if (buttonIconElement) buttonIconElement.className = originalClass;
+      };
+
+      utterance.onerror = (err) => {
+        if (buttonIconElement) buttonIconElement.className = originalClass;
+        console.error("Local Web Speech Synthesis error:", err);
+        if (err.error === "not-allowed" || err.error === "security") {
+          helpModal.classList.remove('hidden');
+        }
+      };
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function playSingleIngredientVoice(name, node) {
+      if (!isSpeechSupported) { helpModal.classList.remove('hidden'); return; }
+      const icon = node ? node.querySelector('i') : null;
+      playTaigiTTS(name, icon || micIcon);
+    }
+
+        function playFullSpeechSentence() {
+      if (!isSpeechSupported) { helpModal.classList.remove('hidden'); return; }
+
+      let list = zongziIngredients;
+      if (currentMode === 'shavedIce') list = shavedIceIngredients;
+      if (currentMode === 'springRoll') list = springRollIngredients;
+      if (currentMode === 'pearlMilkTea') list = pearlTeaIngredients;
+      if (currentMode === 'taiwanOden') list = odenIngredients;
+
+      const activeIngredients = list.filter(ing => basket[ing.id] > 0);
+      if (activeIngredients.length === 0) {
+        showFloatingToast("💡 目前沒有配料\uFF0C請先在上方點選好料khǹg入\uFF01");
+        return;
+      }
+
+      let spokenSentence = "";
+      let segments = [];
+
+      if (currentMode === 'zongzi') {
+        spokenSentence = "這是我縛ê肉粽\uFF0C我肉粽內底有\uFF1A";
+        segments = ["07923", "05013", "03153", "11864", "04386", "02788", "comma", "03153", "02788", "00674", "02449"];
+      } else if (currentMode === 'shavedIce') {
+        spokenSentence = "這碗是我礤ê礤冰\uFF0C我礤冰內底有\uFF1A";
+        segments = ["07923", "05013", "03153", "13020", "04386", "13026", "comma", "03153", "13026", "00674", "02449"];
+      } else if (currentMode === 'springRoll') {
+        spokenSentence = "這是我包ê潤餅\uFF0C我潤餅內底有\uFF1A";
+        segments = ["07923", "05013", "03153", "01394", "04386", "11235", "comma", "03153", "11235", "00674", "02449"];
+      } else if (currentMode === 'pearlMilkTea') {
+        spokenSentence = "這杯是我搖ê珍奶\uFF0C我珍奶內底有\uFF1A";
+        segments = ["07923", "05013", "03153", "09505", "04386", "06422", "53466", "comma", "03153", "06422", "53466", "00674", "02449"];
+      } else if (currentMode === 'taiwanOden') {
+        spokenSentence = "這碗是我燙ê烏輪\uFF0C我烏輪內底有\uFF1A";
+        segments = ["07923", "05013", "03153", "11809", "04386", "06248", "11511", "comma", "03153", "06248", "11511", "00674", "02449"];
+      }
+
+      segments.push("comma");
+
+      const namesList = activeIngredients.map(ing => `${ing.name} ${basket[ing.id]}个`);
+
+      // Stitch active ingredients with counts and unit
+      for (let i = 0; i < activeIngredients.length; i++) {
+        const ing = activeIngredients[i];
+        const count = basket[ing.id];
+
+        const ingAudios = taigiAudioMap[ing.name] || [];
+        segments.push(...ingAudios);
+
+        const countAudios = numberAudioMap[count] || [];
+        segments.push(...countAudios);
+
+        segments.push("00179"); // 个
+
+        if (i < activeIngredients.length - 2) {
+          segments.push("comma");
+        } else if (i === activeIngredients.length - 2) {
+          segments.push("comma");
+          segments.push("10940"); // 閣
+          segments.push("02449"); // 有
+        }
+      }
+
+      segments.push("period");
+
+      // Stitch closing phrase
+      if (currentMode === 'zongzi') {
+        if (isWrapped) {
+          spokenSentence += activeIngredients.length === 1 ? namesList[0] : (namesList.slice(0, -1).join('\u3001') + "\uFF0C閣有 " + namesList[namesList.length - 1]);
+          spokenSentence += "\u3002已經縛好--ah\uFF0C芳貢貢喔\uFF01";
+          segments.push("50009", "11864", "02282", "03350", "comma", "06396", "04443", "08197"); // 已經 + 縛 + 好 + 矣, 真 + 芳 + 喔
+        } else {
+          spokenSentence += activeIngredients.length === 1 ? namesList[0] : (namesList.slice(0, -1).join('\u3001') + "\uFF0C閣有 " + namesList[namesList.length - 1]);
+          spokenSentence += "\u3002欲準備來縛矣\uFF01";
+          segments.push("07493", "09691", "03543", "11864", "03350"); // 欲 + 準備 + 來 + 縛 + 矣
+        }
+      } else if (currentMode === 'shavedIce') {
+        if (isWrapped) {
+          spokenSentence += activeIngredients.length === 1 ? namesList[0] : (namesList.slice(0, -1).join('\u3001') + "\uFF0C閣有 " + namesList[namesList.length - 1]);
+          spokenSentence += "\u3002淋牛奶膏--ah\uFF0C甜粅粅喔\uFF01";
+          segments.push("07530", "01238", "10814", "03350", "comma", "07688", "08197"); // 淋 + 牛奶 + 膏 + 矣, 甜粅粅 + 喔
+        } else {
+          spokenSentence += activeIngredients.length === 1 ? namesList[0] : (namesList.slice(0, -1).join('\u3001') + "\uFF0C閣有 " + namesList[namesList.length - 1]);
+          spokenSentence += "\u3002欲準備淋牛奶膏--ah\uFF01";
+          segments.push("07493", "09691", "07530", "01238", "10814", "03350"); // 欲 + 準備 + 淋 + 牛奶 + 膏 + 矣
+        }
+      } else if (currentMode === 'springRoll') {
+        if (isWrapped) {
+          spokenSentence += activeIngredients.length === 1 ? namesList[0] : (namesList.slice(0, -1).join('\u3001') + "\uFF0C閣有 " + namesList[namesList.length - 1]);
+          spokenSentence += "\u3002已經包好--ah\uFF0C真芳\uFF0C緊來食\uFF01";
+          segments.push("50009", "01394", "02282", "03350", "comma", "06396", "04443", "comma", "10785", "03543", "05588"); // 已經 + 包 + 好 + 矣, 真 + 芳, 緊 + 來 + 食
+        } else {
+          spokenSentence += activeIngredients.length === 1 ? namesList[0] : (namesList.slice(0, -1).join('\u3001') + "\uFF0C閣有 " + namesList[namesList.length - 1]);
+          spokenSentence += "\u3002欲準備來包矣\uFF01";
+          segments.push("07493", "09691", "03543", "01394", "03350"); // 欲 + 準備 + 來 + 包 + 矣
+        }
+      } else if (currentMode === 'pearlMilkTea') {
+        if (isWrapped) {
+          spokenSentence += activeIngredients.length === 1 ? namesList[0] : (namesList.slice(0, -1).join('\u3001') + "\uFF0C閣有 " + namesList[namesList.length - 1]);
+          spokenSentence += "\u3002搖予勻矣\uFF01誠芳誠好飲\uFF01";
+          segments.push("09505", "00573", "00596", "03350", "comma", "10084", "04443", "10084", "02282", "07042"); // 搖 + 予 + 勻 + 矣, 誠 + 芳 + 誠 + 好 + 啉
+        } else {
+          spokenSentence += activeIngredients.length === 1 ? namesList[0] : (namesList.slice(0, -1).join('\u3001') + "\uFF0C閣有 " + namesList[namesList.length - 1]);
+          spokenSentence += "\u3002欲準備來搖矣\uFF01";
+          segments.push("07493", "09691", "03543", "09505", "03350"); // 欲 + 準備 + 來 + 搖 + 矣
+        }
+      } else if (currentMode === 'taiwanOden') {
+        if (isWrapped) {
+          spokenSentence += activeIngredients.length === 1 ? namesList[0] : (namesList.slice(0, -1).join('\u3001') + "\uFF0C閣有 " + namesList[namesList.length - 1]);
+          spokenSentence += "\u3002淋膏矣\uFF01緊來食\uFF01";
+          segments.push("07530", "10814", "03350", "comma", "10785", "03543", "05588"); // 淋 + 膏 + 矣, 緊 + 來 + 食
+        } else {
+          spokenSentence += activeIngredients.length === 1 ? namesList[0] : (namesList.slice(0, -1).join('\u3001') + "\uFF0C閣有 " + namesList[namesList.length - 1]);
+          spokenSentence += "\u3002欲準備來燙矣\uFF01";
+          segments.push("07493", "09691", "03543", "11809", "03350"); // 欲 + 準備 + 來 + 燙 + 矣
+        }
+      }
+
+      playTaigiTTS(spokenSentence, micIcon, segments);
+    }
+
+        function setEngineBadgeStatus(status) {
+      if (status === 'real' || status === 'moedict') {
+        engineBadge.innerText = "🔊 萌典原音";
+        engineBadge.className = "bg-[#10B981] text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-sm";
+      } else if (status === 'google') {
+        engineBadge.innerText = "🔊 雲端台語";
+        engineBadge.className = "bg-[#F2DF3A] text-[#1E5136] text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-sm";
+      } else {
+        engineBadge.innerText = "🔊 離線擬音";
+        engineBadge.className = "bg-amber-100 text-amber-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-sm";
+      }
+    }
+
+    function updateEngineBadgeStyle() {
+      // Dynamic styles to blend with active themes
+      const text = engineBadge.innerText;
+      if (text.includes("萌典原音")) {
+        setEngineBadgeStatus('real');
+      } else if (text.includes("雲端台語")) {
+        setEngineBadgeStatus('google');
+      } else {
+        setEngineBadgeStatus('local');
+      }
+    }
+
+    // 13. UI Toasts
+    function showFloatingToast(msg) {
+      const activeToast = document.getElementById('floating-toast');
+      if (activeToast) activeToast.remove();
+
+      const toast = document.createElement('div');
+      toast.id = 'floating-toast';
+      toast.className = "fixed bottom-24 left-1/2 -translate-x-1/2 bg-[#1A2332]/95 text-[#E2E8F0] text-xs font-semibold py-3 px-6 rounded-2xl shadow-2xl z-50 transition-all duration-300 transform translate-y-10 opacity-0 flex items-center space-x-2 border border-slate-700/50 w-11/12 max-w-xs text-center justify-center";
+      toast.innerHTML = `<span>🔔</span> <span>${msg}</span>`;
+
+      document.body.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-10', 'opacity-0');
+        toast.classList.add('translate-y-0', 'opacity-100');
+      }, 50);
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-10', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

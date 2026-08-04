@@ -1,0 +1,755 @@
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>咱來縛肉粽！- 台灣傳統肉粽互動體驗</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Canvas Confetti for winning animation -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background-color: #FAF2E5; /* Warm sand/rice background color from screenshot */
+      -webkit-tap-highlight-color: transparent;
+    }
+    .screenshot-card-shadow {
+      box-shadow: 0 4px 12px rgba(139, 115, 85, 0.08);
+      border: 1px solid rgba(226, 210, 181, 0.4);
+    }
+    .drag-item {
+      touch-action: none;
+      user-select: none;
+    }
+    .drag-item:hover .control-ring {
+      opacity: 1;
+    }
+    @keyframes swing {
+      0%, 100% { transform: rotate(-4deg); }
+      50% { transform: rotate(4deg); }
+    }
+    .swing-zongzi {
+      animation: swing 3s ease-in-out infinite;
+      transform-origin: top center;
+    }
+  </style>
+</head>
+<body class="min-h-screen py-4 px-3 flex flex-col items-center justify-start select-none">
+
+  <!-- MAIN WRAPPER CONTAINER: Designed exactly like the screenshot layout -->
+  <div class="w-full max-w-md bg-[#F5EFE4] rounded-[28px] overflow-hidden border-4 border-[#1E5136] shadow-2xl flex flex-col pb-6">
+    
+    <!-- HEADER BAR: Dark Green with Zongzi icon -->
+    <header class="bg-[#1E5136] py-3.5 px-4 flex items-center justify-center space-x-2 text-white">
+      <svg class="w-6 h-6 fill-current text-[#F2DF3A]" viewBox="0 0 24 24">
+        <path d="M12 2L2 20h20L12 2zm0 4l7 12H5l7-12z"/>
+      </svg>
+      <h1 class="text-xl font-black tracking-widest text-[#FDF8F0]">咱來縛肉粽！</h1>
+    </header>
+
+    <!-- MAIN SCROLLABLE BODY -->
+    <div class="px-3 pt-4 space-y-4 flex-1">
+      
+      <!-- PART 1: INGREDIENTS SELECTOR (壹、澎湃的料) -->
+      <section class="bg-[#FFFDF9] rounded-2xl p-4 screenshot-card-shadow relative">
+        <div class="flex items-center space-x-2 mb-3">
+          <span class="text-lg">🍱</span>
+          <h2 class="text-base font-bold text-[#1E5136]">壹、澎湃的料</h2>
+          <span class="bg-[#F2DF3A] text-[#1E5136] text-[10px] font-extrabold px-1.5 py-0.5 rounded-full shadow-sm">
+            台語發音
+          </span>
+        </div>
+
+        <!-- Grid matching the visual layout of screenshot 1 -->
+        <div class="grid grid-cols-2 gap-3" id="ingredients-grid">
+          <!-- Dynamically populated from JavaScript -->
+        </div>
+
+        <!-- Yellow banner at the bottom of ingredients -->
+        <div class="bg-[#FFFDEB] border border-[#FDEAA8] rounded-xl p-2.5 text-[11px] text-[#8B6B3F] mt-3.5 flex items-start space-x-1.5 leading-relaxed">
+          <span class="text-sm mt-0.5">💡</span>
+          <p>
+            你可以簡單 <strong class="text-[#1E5136]">[- / +]</strong> 放入配料，並直接在下方粽葉上“任意調整和旋轉”它的位置唷！
+          </p>
+        </div>
+      </section>
+
+      <!-- PART 2: THE PLAYGROUND CANVAS -->
+      <section class="bg-white rounded-2xl p-4 screenshot-card-shadow relative flex flex-col">
+        
+        <!-- Canvas Frame -->
+        <div id="canvas-area" class="w-full h-64 bg-gradient-to-b from-slate-50 to-emerald-50/20 rounded-xl border border-dashed border-[#D6C7AE] relative overflow-hidden flex items-center justify-center">
+          
+          <!-- Tutorial Tooltip Bubble -->
+          <div id="canvas-hint" class="absolute top-3 left-3 right-3 bg-white/95 backdrop-blur-sm border border-emerald-100 px-3 py-1.5 rounded-full text-center text-[10px] text-emerald-800 shadow-sm z-30 pointer-events-none transition-opacity duration-300">
+            👉 請點選上方配料 <strong>[ + ]</strong> 放入肉粽葉中！
+          </div>
+
+          <!-- UNWRAPPED STATE (Bamboo Leaf with Rice) -->
+          <div id="unwrapped-state" class="relative w-full h-full flex items-center justify-center transition-all duration-300">
+            <!-- Bamboo Leaf Graphic -->
+            <svg class="w-52 h-52 drop-shadow-md" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15 110 C 40 160, 160 160, 185 110 C 160 60, 110 30, 100 20 C 90 30, 40 60, 15 110 Z" fill="#2d6e49"/>
+              <path d="M15 110 C 10 90, 40 40, 100 20 C 80 70, 45 100, 15 110 Z" fill="#1b5232"/>
+              <path d="M185 110 C 190 90, 160 40, 100 20 C 120 70, 155 100, 185 110 Z" fill="#23603b"/>
+              <path d="M100 20 Q 100 100 100 150" stroke="#123b20" stroke-width="1.5"/>
+              <!-- Rice Base -->
+              <path d="M55 110 C 55 80, 145 80, 145 110 C 145 135, 55 135, 55 110 Z" fill="#FAF8F0" stroke="#E5DEC9" stroke-width="2"/>
+              <ellipse cx="80" cy="105" rx="5" ry="3" fill="#FFFFFF" transform="rotate(20 80 105)" />
+              <ellipse cx="100" cy="100" rx="6" ry="4" fill="#FFFFFF" transform="rotate(-15 100 100)" />
+              <ellipse cx="120" cy="110" rx="5" ry="3" fill="#FFFFFF" transform="rotate(45 120 110)" />
+              <ellipse cx="90" cy="120" rx="6" ry="3" fill="#FFFFFF" transform="rotate(-30 90 120)" />
+            </svg>
+
+            <!-- Container for Draggable Spawn Emojis -->
+            <div id="spawning-container" class="absolute inset-0 z-20"></div>
+          </div>
+
+          <!-- WRAPPED STATE (Classic Origami Pyramid Zongzi from Screenshot 2) -->
+          <div id="wrapped-state" class="hidden absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-[#F4F9FB] transition-all duration-300">
+            <!-- 3D Pyramid Zongzi -->
+            <div class="relative w-36 h-36 flex items-center justify-center">
+              <svg class="w-full h-full drop-shadow-xl" viewBox="0 0 200 200" fill="none">
+                <path d="M100 30 L40 145 L100 175 Z" fill="#1b5232" stroke="#123b20" stroke-width="2"/>
+                <path d="M100 30 L100 175 L160 145 Z" fill="#2d6e49" stroke="#123b20" stroke-width="2"/>
+                <path d="M73 85 C 85 92, 115 92, 127 85" stroke="#E2C999" stroke-width="3" stroke-linecap="round"/>
+                <path d="M62 115 C 80 125, 120 125, 138 115" stroke="#D3B884" stroke-width="3" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <!-- Green Ribbon Pill Badge -->
+            <span class="mt-3 bg-[#729A82] text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-sm flex items-center space-x-1">
+              <span>✨</span> <span>縛好矣！香噴噴！</span>
+            </span>
+          </div>
+
+          <!-- Hanging Zongzi Miniature Stand (Bottom right decoration) -->
+          <div class="absolute bottom-2.5 right-2.5 flex flex-col items-center pointer-events-none z-10">
+            <div class="w-4 h-0.5 bg-amber-800 rounded-sm"></div>
+            <div class="w-0.5 h-5 bg-amber-700"></div>
+            <div class="swing-zongzi -mt-0.5">
+              <svg class="w-6 h-6" viewBox="0 0 100 100" fill="none">
+                <path d="M50 10 L20 70 L50 90 L80 70 Z" fill="#2d6e49" stroke="#1b5232"/>
+                <path d="M50 10 L50 90 L80 70 Z" fill="#1b5232"/>
+                <path d="M35 55 Q 50 63 65 55" stroke="#D3B884" stroke-width="2"/>
+              </svg>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Buttons Block: Styled exactly like screenshot 2 -->
+        <div class="grid grid-cols-2 gap-3 mt-4">
+          <!-- Restart Button -->
+          <button id="btn-restart" class="bg-[#5A6C7C] hover:bg-[#4E5E6D] text-white font-bold py-2.5 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-md active:scale-95 transition-all">
+            <span class="text-base">🔀</span>
+            <span class="text-sm tracking-wide">重新來過</span>
+          </button>
+          
+          <!-- Finish/Wrap Button -->
+          <button id="btn-finish" class="bg-[#F36F21] hover:bg-[#E25E12] text-white font-black py-2.5 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-md active:scale-95 transition-all">
+            <span class="text-base">🍙</span>
+            <span id="finish-text" class="text-sm tracking-wide">我綁好矣！</span>
+          </button>
+        </div>
+
+      </section>
+
+      <!-- PART 3: SPEECH AREA (參、講看覓咧！) -->
+      <section class="bg-[#1E5136] rounded-2xl p-4 border-2 border-[#123623] text-white screenshot-card-shadow">
+        
+        <!-- Header -->
+        <div class="flex items-center space-x-2 mb-3">
+          <span class="text-lg">🗣️</span>
+          <h2 class="text-sm font-black text-white">參、講看覓咧！<span class="text-[11px] text-emerald-200 font-normal ml-1">(用台語介紹肉粽內底有啥)</span></h2>
+        </div>
+
+        <!-- Speech Frame Container (Dark Green Pill Box) -->
+        <div class="bg-[#17432C] rounded-2xl p-3.5 flex items-center space-x-4 border border-[#123522]">
+          
+          <!-- Circular Speaker/Microphone Trigger Button -->
+          <button id="btn-speak-all" class="w-12 h-12 shrink-0 bg-white hover:bg-emerald-50 text-[#1E5136] rounded-full flex items-center justify-center shadow-md active:scale-90 transition-transform relative" title="點擊聆聽台語發音">
+            <i class="fa-solid fa-microphone text-lg text-emerald-800 animate-pulse" id="mic-icon"></i>
+          </button>
+
+          <!-- Speech Text content -->
+          <div class="flex-1 min-h-[48px] flex flex-col justify-center">
+            <span class="text-[10px] text-emerald-300 font-bold tracking-wider mb-0.5">這是我的肉粽，我的肉粽內底有：</span>
+            <!-- Bright Yellow Text from Screenshot 2 -->
+            <div id="speech-sentence" class="text-sm md:text-base font-black text-[#FDF03A] tracking-wide leading-relaxed">
+              (請點選上方配料 + 放入肉粽裡...)
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+    </div>
+  </div>
+
+  <!-- Help Instruction Modal for Sandboxed / Silent devices -->
+  <div id="help-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border-2 border-[#1E5136]">
+      <div class="bg-[#1E5136] text-white p-4 text-center font-black text-lg flex items-center justify-center space-x-2">
+        <span>📢</span> <span>老師與同學們好！</span>
+      </div>
+      <div class="p-6 text-sm text-slate-700 space-y-4 leading-relaxed">
+        <p class="font-bold text-[#1E5136] text-base">🔊 聽不到聲音嗎？這是因為瀏覽器安全政策阻擋了預覽頁面的音訊！</p>
+        <p>請採用以下任一簡單方法，就能**100% 成功聽到超大聲台語發音**：</p>
+        <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-200 space-y-2">
+          <p class="font-semibold text-emerald-900">👉 方法一（推薦）：</p>
+          <p class="text-xs">點選此網頁最右上角的<strong>「在新分頁開啟 (Open in New Tab)」</strong>圖示，在獨立頁面玩就絕對有聲音！</p>
+          <p class="font-semibold text-emerald-900 mt-2">👉 方法二（本機執行）：</p>
+          <p class="text-xs">直接在您的<strong>學校共享資料夾中，雙擊打開「index.html」檔案</strong>直接玩！</p>
+        </div>
+      </div>
+      <div class="p-4 bg-slate-50 border-t flex justify-center">
+        <button onclick="closeHelpModal()" class="bg-[#F36F21] text-white font-black py-2 px-6 rounded-full text-sm hover:bg-[#E25E12] transition-colors shadow-md">
+          我知道了，緊來試驗！
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="text-[10px] text-slate-400 mt-4 text-center select-none font-medium">
+    咱來縛肉粽！ | 採用 100% 離線免網路諧音合成技術
+  </div>
+
+  <!-- APPLICATION CODE LOGIC -->
+  <script>
+    // Ingredients Pronunciation Registry
+    const ingredientsData = [
+      { id: 'yolk', name: '卵仁', sub: 'nn̂g-jîn', emoji: '🟡' },
+      { id: 'mushroom', name: '香菇', sub: 'hiunn-koo', emoji: '🍄' },
+      { id: 'peanut', name: '塗豆', sub: 'thôo-tāu', emoji: '🥜' },
+      { id: 'pork', name: '滷肉', sub: 'lóo-bah', emoji: '🥓' },
+      { id: 'chestnut', name: '栗子', sub: 'la̍t-tsí', emoji: '🌰' },
+      { id: 'shrimp', name: '蝦米', sub: 'hê-bí', emoji: '🦐' },
+      { id: 'squid', name: '魷魚', sub: 'jiû-hî', emoji: '🦑' },
+      { id: 'salted_egg', name: '鹹蛋', sub: 'kiâm-nn̂g', emoji: '🍳' }
+    ];
+
+    // State Variables
+    let basket = {}; 
+    let canvasItems = []; 
+    let isWrapped = false;
+    let isSpeechSupported = true;
+
+    // DOM References
+    const gridEl = document.getElementById('ingredients-grid');
+    const spawnContainer = document.getElementById('spawning-container');
+    const unwrappedState = document.getElementById('unwrapped-state');
+    const wrappedState = document.getElementById('wrapped-state');
+    const canvasHint = document.getElementById('canvas-hint');
+    const speechSentenceEl = document.getElementById('speech-sentence');
+    const helpModal = document.getElementById('help-modal');
+    
+    // Action Controllers
+    const btnRestart = document.getElementById('btn-restart');
+    const btnFinish = document.getElementById('btn-finish');
+    const finishText = document.getElementById('finish-text');
+    const btnSpeakAll = document.getElementById('btn-speak-all');
+    const micIcon = document.getElementById('mic-icon');
+
+    // 1. Initial Launch
+    function init() {
+      renderIngredients();
+      updateSentenceLayout();
+
+      btnRestart.addEventListener('click', restartAction);
+      btnFinish.addEventListener('click', toggleWrapState);
+      btnSpeakAll.addEventListener('click', playFullSpeechSentence);
+
+      // Verify speech engines immediately upon start
+      checkSpeechEngineSupport();
+    }
+
+    function checkSpeechEngineSupport() {
+      if (!('speechSynthesis' in window)) {
+        isSpeechSupported = false;
+        showHelpModal();
+      }
+    }
+
+    function showHelpModal() {
+      helpModal.classList.remove('hidden');
+    }
+
+    window.closeHelpModal = function() {
+      helpModal.classList.add('hidden');
+    };
+
+    // 2. Render Panel Item selectors (Screenshot 1 styling)
+    function renderIngredients() {
+      gridEl.innerHTML = '';
+      ingredientsData.forEach(ing => {
+        const count = basket[ing.id] || 0;
+        
+        const card = document.createElement('div');
+        card.className = "bg-white p-2.5 rounded-xl border border-[#F3EAD3] flex flex-col items-center select-none relative shadow-sm";
+        card.innerHTML = `
+          <div class="text-3xl mb-1 filter drop-shadow-sm transform scale-105 pointer-events-none">${ing.emoji}</div>
+          
+          <div class="text-center mb-2">
+            <span class="block text-xs font-extrabold text-slate-800 cursor-pointer hover:text-emerald-700" onclick="playSingleIngredientVoice('${ing.name}', this)">
+              ${ing.name} <i class="fa-solid fa-volume-high text-[9px] text-slate-400 ml-0.5"></i>
+            </span>
+            <span class="block text-[9px] text-emerald-600 font-semibold font-mono bg-emerald-50 px-1.5 py-0.5 rounded-full mt-0.5">${ing.sub}</span>
+          </div>
+
+          <div class="flex items-center w-full justify-between bg-slate-50 border border-slate-150 rounded-lg p-0.5">
+            <button onclick="changeIngredientCount('${ing.id}', -1)" class="w-6 h-6 bg-[#FFEBEB] text-[#FF5B5B] hover:bg-red-100 font-extrabold rounded-md flex items-center justify-center transition-all focus:outline-none text-xs">-</button>
+            <span id="qty-${ing.id}" class="text-xs font-black text-slate-700 w-5 text-center">${count}</span>
+            <button onclick="changeIngredientCount('${ing.id}', 1)" class="w-6 h-6 bg-[#E8F8F5] text-[#1ABC9C] hover:bg-emerald-100 font-extrabold rounded-md flex items-center justify-center transition-all focus:outline-none text-xs">+</button>
+          </div>
+        `;
+        gridEl.appendChild(card);
+      });
+    }
+
+    // 3. Counter Adjustment Logic
+    window.changeIngredientCount = function(id, delta) {
+      if (isWrapped) {
+        showFloatingToast("⚠️ 綁好肉粽囉！請先點「重新來過」再放入別的料。");
+        return;
+      }
+
+      const ing = ingredientsData.find(i => i.id === id);
+      const current = basket[id] || 0;
+      const next = Math.max(0, current + delta);
+
+      basket[id] = next;
+      document.getElementById(`qty-${id}`).innerText = next;
+
+      if (delta > 0) {
+        spawnEmojiInCanvas(ing);
+        // Direct DOM reference mapping
+        const countLabel = document.getElementById(`qty-${id}`);
+        const cardNode = countLabel ? countLabel.closest('.bg-white') : null;
+        const spanNode = cardNode ? cardNode.querySelector('span') : null;
+        playSingleIngredientVoice(ing.name, spanNode);
+      } else if (delta < 0) {
+        removeEmojiFromCanvas(id);
+      }
+
+      updateSentenceLayout();
+    };
+
+    // 4. Interactive Draggable System inside Bamboo Canvas
+    function spawnEmojiInCanvas(ing) {
+      canvasHint.style.opacity = '0';
+
+      const el = document.createElement('div');
+      const uniqueId = 'canvas-item-' + Date.now() + Math.random().toString(36).substr(2, 3);
+      el.id = uniqueId;
+      el.className = "drag-item absolute cursor-grab select-none active:cursor-grabbing z-20 group p-1";
+
+      const bounds = spawnContainer.getBoundingClientRect();
+      const randX = (bounds.width / 2) + (Math.random() * 60 - 30) - 16;
+      const randY = (bounds.height / 2) + (Math.random() * 60 - 30) - 16;
+      const randAngle = Math.floor(Math.random() * 360);
+
+      el.style.left = `${randX}px`;
+      el.style.top = `${randY}px`;
+      el.style.transform = `rotate(${randAngle}deg)`;
+
+      el.innerHTML = `
+        <div class="text-3xl pointer-events-none filter drop-shadow transition-transform hover:scale-115">${ing.emoji}</div>
+        <div class="control-ring opacity-0 group-hover:opacity-100 absolute -top-3 -left-3 w-12 h-12 border border-dashed border-emerald-600 rounded-full pointer-events-none flex items-center justify-between">
+          <div class="absolute -top-1.5 left-1/2 -translate-x-1/2 w-4.5 h-4.5 bg-emerald-600 rounded-full flex items-center justify-center text-white text-[8px] cursor-pointer pointer-events-auto shadow btn-rotate">
+            <i class="fa-solid fa-sync"></i>
+          </div>
+          <div class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-4.5 h-4.5 bg-red-500 rounded-full flex items-center justify-center text-white text-[8px] cursor-pointer pointer-events-auto shadow btn-delete">
+            <i class="fa-solid fa-trash-can"></i>
+          </div>
+        </div>
+      `;
+
+      spawnContainer.appendChild(el);
+
+      const itemData = {
+        id: uniqueId,
+        ingId: ing.id,
+        x: randX,
+        y: randY,
+        angle: randAngle,
+        dom: el
+      };
+      canvasItems.push(itemData);
+
+      bindItemDragAndRotation(itemData);
+    }
+
+    function removeEmojiFromCanvas(ingId) {
+      const idx = canvasItems.map(x => x.ingId).lastIndexOf(ingId);
+      if (idx !== -1) {
+        canvasItems[idx].dom.remove();
+        canvasItems.splice(idx, 1);
+      }
+      if (canvasItems.length === 0) {
+        canvasHint.style.opacity = '1';
+      }
+    }
+
+    // Drag and rotate event hooks
+    function bindItemDragAndRotation(item) {
+      const el = item.dom;
+      let dragging = false;
+      let startX, startY;
+      let itemX, itemY;
+
+      el.addEventListener('pointerdown', (e) => {
+        if (isWrapped) return;
+        if (e.target.closest('.btn-rotate') || e.target.closest('.btn-delete')) return;
+
+        dragging = true;
+        el.setPointerCapture(e.pointerId);
+        
+        startX = e.clientX;
+        startY = e.clientY;
+        itemX = parseFloat(el.style.left);
+        itemY = parseFloat(el.style.top);
+        
+        e.stopPropagation();
+      });
+
+      el.addEventListener('pointermove', (e) => {
+        if (!dragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+
+        const bounds = spawnContainer.getBoundingClientRect();
+        let nx = itemX + dx;
+        let ny = itemY + dy;
+
+        nx = Math.max(0, Math.min(bounds.width - 32, nx));
+        ny = Math.max(0, Math.min(bounds.height - 32, ny));
+
+        el.style.left = `${nx}px`;
+        el.style.top = `${ny}px`;
+        item.x = nx;
+        item.y = ny;
+      });
+
+      const stopDrag = (e) => {
+        if (dragging) {
+          dragging = false;
+          el.releasePointerCapture(e.pointerId);
+        }
+      };
+      el.addEventListener('pointerup', stopDrag);
+      el.addEventListener('pointercancel', stopDrag);
+
+      // Rotation Actions
+      const rot = el.querySelector('.btn-rotate');
+      let rotating = false;
+      let centerAngle = 0;
+
+      rot.addEventListener('pointerdown', (e) => {
+        rotating = true;
+        rot.setPointerCapture(e.pointerId);
+
+        const rect = el.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+
+        centerAngle = Math.atan2(e.clientY - cy, e.clientX - cx) * (180 / Math.PI) - item.angle;
+        e.stopPropagation();
+      });
+
+      rot.addEventListener('pointermove', (e) => {
+        if (!rotating) return;
+        const rect = el.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+
+        const currAngle = Math.atan2(e.clientY - cy, e.clientX - cx) * (180 / Math.PI);
+        let calculated = currAngle - centerAngle;
+        if (calculated < 0) calculated += 360;
+
+        item.angle = calculated;
+        el.style.transform = `rotate(${calculated}deg)`;
+      });
+
+      const stopRot = (e) => {
+        if (rotating) {
+          rotating = false;
+          rot.releasePointerCapture(e.pointerId);
+        }
+      };
+      rot.addEventListener('pointerup', stopRot);
+      rot.addEventListener('pointercancel', stopRot);
+
+      // Delete Node Trigger
+      const del = el.querySelector('.btn-delete');
+      del.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        el.remove();
+        canvasItems = canvasItems.filter(x => x.id !== item.id);
+        
+        basket[item.ingId] = Math.max(0, (basket[item.ingId] || 1) - 1);
+        document.getElementById(`qty-${item.ingId}`).innerText = basket[item.ingId];
+
+        if (canvasItems.length === 0) {
+          canvasHint.style.opacity = '1';
+        }
+        updateSentenceLayout();
+      });
+    }
+
+    // 5. Wrap / Unwrap Transition
+    function toggleWrapState() {
+      if (canvasItems.length === 0) {
+        showFloatingToast("⚠️ 你的肉粽內底空空，請先加入配料喔！");
+        return;
+      }
+
+      isWrapped = !isWrapped;
+
+      if (isWrapped) {
+        unwrappedState.classList.add('opacity-0', 'scale-75');
+        setTimeout(() => {
+          unwrappedState.classList.add('hidden');
+          wrappedState.classList.remove('hidden');
+          wrappedState.classList.add('opacity-100', 'scale-100');
+
+          confetti({
+            particleCount: 80,
+            spread: 50,
+            origin: { y: 0.75 },
+            colors: ['#2d6e49', '#FAF2E5', '#1b5232', '#F2DF3A', '#F36F21']
+          });
+        }, 150);
+
+        finishText.innerText = "解開肉粽";
+        showFloatingToast("🎉 肉粽綁好了！香味撲鼻！");
+      } else {
+        wrappedState.classList.add('opacity-0', 'scale-75');
+        setTimeout(() => {
+          wrappedState.classList.add('hidden');
+          unwrappedState.classList.remove('hidden');
+          unwrappedState.classList.add('opacity-100', 'scale-100');
+        }, 150);
+        finishText.innerText = "我綁好矣！";
+      }
+      updateSentenceLayout();
+    }
+
+    // 6. Restart/Clear Action
+    function restartAction() {
+      basket = {};
+      canvasItems = [];
+      spawnContainer.innerHTML = '';
+      isWrapped = false;
+
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+
+      ingredientsData.forEach(ing => {
+        document.getElementById(`qty-${ing.id}`).innerText = 0;
+      });
+
+      wrappedState.classList.add('hidden');
+      unwrappedState.classList.remove('hidden', 'opacity-0', 'scale-75');
+      canvasHint.style.opacity = '1';
+
+      finishText.innerText = "我綁好矣！";
+      updateSentenceLayout();
+      showFloatingToast("🔄 已清理，包新的一顆肉粽！");
+    }
+
+    // 7. Dynamic Speech Sentence Layout generator (Exactly like Screenshot 2)
+    function updateSentenceLayout() {
+      const activeIngredients = ingredientsData.filter(ing => basket[ing.id] > 0);
+
+      if (activeIngredients.length === 0) {
+        speechSentenceEl.innerHTML = `<span class="text-emerald-300 font-normal">(請點選上方配料 + 放入肉粽裡...)</span>`;
+        return;
+      }
+
+      let parsedElements = activeIngredients.map(ing => {
+        const count = basket[ing.id];
+        return `${ing.name} ${count > 1 ? `${count}個` : '1個'}`;
+      });
+
+      let formattedOutput = "";
+      if (parsedElements.length === 1) {
+        formattedOutput = parsedElements[0];
+      } else {
+        const lastElement = parsedElements.pop();
+        formattedOutput = parsedElements.join('、') + "，閣有 " + lastElement;
+      }
+
+      speechSentenceEl.innerText = formattedOutput + "！";
+    }
+
+    // ========================================================
+    // 8. 100% RELIABLE OFFLINE LINGUISTIC PHONETIC SPEECH ENGINE
+    // ========================================================
+    
+    // Homophonic Translation Dictionary for Mandarin TTS reading Taiwanese words
+    // Trims out pronunciation mismatches completely
+    const taigiPhoneticMap = {
+      "卵仁": "冷金",
+      "香菇": "黑嗯菇",
+      "塗豆": "投豆",
+      "滷肉": "羅霸",
+      "栗子": "辣茲",
+      "蝦米": "黑米",
+      "魷魚": "尤黑",
+      "鹹蛋": "兼冷",
+      "這是我的肉粽": "基夕哇欸霸掌",
+      "我的肉粽內底有": "哇欸霸掌賴得屋",
+      "閣有": "扣屋",
+      "綁好了": "邦好阿",
+      "已經綁好囉": "以經邦好阿",
+      "香噴噴": "胖噴噴",
+      "誠豐沛喔": "成崩配喔",
+      "一個": "基欸",
+      "二個": "冷欸",
+      "三個": "沙欸",
+      "四個": "夕欸",
+      "五個": "喔欸"
+    };
+
+    function translateToPhoneticTaigi(rawChineseText) {
+      let result = rawChineseText;
+      
+      // Replace words dynamically based on the priority order
+      const keysSortedByLength = Object.keys(taigiPhoneticMap).sort((a, b) => b.length - a.length);
+      for (let key of keysSortedByLength) {
+        const regex = new RegExp(key, 'g');
+        result = result.replace(regex, taigiPhoneticMap[key]);
+      }
+      
+      // Standard quantities fallback parsing
+      result = result.replace(/1個/g, "基欸");
+      result = result.replace(/2個/g, "冷欸");
+      result = result.replace(/3個/g, "沙欸");
+      result = result.replace(/4個/g, "夕欸");
+      result = result.replace(/5個/g, "喔欸");
+      
+      return result;
+    }
+
+    function playOfflineTaigiSpeech(chinesePhraseText, buttonIconElement) {
+      if (!('speechSynthesis' in window)) {
+        showHelpModal();
+        return;
+      }
+
+      const originalClass = buttonIconElement.className;
+      buttonIconElement.className = "fa-solid fa-volume-high text-lg text-emerald-800 animate-bounce";
+
+      // Stop any ongoing voice
+      window.speechSynthesis.cancel();
+
+      // Convert our phrase into beautiful phonetics
+      const phoneticTaigiText = translateToPhoneticTaigi(chinesePhraseText);
+      console.log("Synthesized text output:", phoneticTaigiText);
+
+      const utterance = new SpeechSynthesisUtterance(phoneticTaigiText);
+      utterance.lang = "zh-TW"; // Feed to local Taiwan voice
+      utterance.rate = 0.82;    // Slower pacing for rich pedagogical clarity
+      utterance.pitch = 1.0;
+
+      // Select high-quality native zh-TW voice profile
+      const availableVoices = window.speechSynthesis.getVoices();
+      const taiwanVoice = availableVoices.find(v => v.lang.includes("zh-TW"));
+      if (taiwanVoice) {
+        utterance.voice = taiwanVoice;
+      }
+
+      utterance.onend = () => {
+        buttonIconElement.className = originalClass;
+      };
+
+      utterance.onerror = (err) => {
+        console.error("Local TTS Engine error:", err);
+        buttonIconElement.className = originalClass;
+        
+        // If synthesis fails inside sandboxed sharing link, trigger instructions Modal
+        if (err.error === "not-allowed" || err.error === "security") {
+          showHelpModal();
+        }
+      };
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // Single item sound playing trigger
+    function playSingleIngredientVoice(ingredientName, triggerElement) {
+      if (!isSpeechSupported) {
+        showHelpModal();
+        return;
+      }
+      let icon = null;
+      if (triggerElement) {
+        icon = triggerElement.querySelector('i');
+      }
+      playOfflineTaigiSpeech(ingredientName, icon || micIcon);
+    }
+
+    // Aggregate speech builder matching Screenshot 2 sentence
+    function playFullSpeechSentence() {
+      if (!isSpeechSupported) {
+        showHelpModal();
+        return;
+      }
+      const activeIngredients = ingredientsData.filter(ing => basket[ing.id] > 0);
+      if (activeIngredients.length === 0) {
+        showFloatingToast("💡 您的肉粽目前沒有配料，請先點擊上方加入配料！");
+        return;
+      }
+
+      let spokenSentence = "我的肉粽內底有：";
+      const namesList = activeIngredients.map(ing => {
+        const count = basket[ing.id];
+        return `${ing.name} ${count > 1 ? `${count}個` : '1個'}`;
+      });
+      
+      if (namesList.length === 1) {
+        spokenSentence += namesList[0];
+      } else {
+        const finalItem = namesList.pop();
+        spokenSentence += namesList.join('、') + "，閣有 " + finalItem;
+      }
+      spokenSentence += isWrapped ? "。已經綁好囉，香噴噴！" : "。誠豐沛喔！";
+
+      playOfflineTaigiSpeech(spokenSentence, micIcon);
+    }
+
+    // Toast Layout
+    function showFloatingToast(msg) {
+      const activeToast = document.getElementById('floating-toast');
+      if (activeToast) activeToast.remove();
+
+      const toast = document.createElement('div');
+      toast.id = 'floating-toast';
+      toast.className = "fixed bottom-20 left-1/2 -translate-x-1/2 bg-[#1A2332]/95 text-[#E2E8F0] text-xs font-semibold py-3 px-6 rounded-2xl shadow-2xl z-50 transition-all duration-300 transform translate-y-10 opacity-0 flex items-center space-x-2 border border-slate-700/50 w-11/12 max-w-xs text-center justify-center";
+      toast.innerHTML = `<span>🔔</span> <span>${msg}</span>`;
+
+      document.body.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-10', 'opacity-0');
+        toast.classList.add('translate-y-0', 'opacity-100');
+      }, 50);
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-10', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="referrer" content="no-referrer">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>台灣傳統美食台語五合一互動教具</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+    body { font-family: 'Noto Sans TC', sans-serif; background-color: #FAF2E5; -webkit-tap-highlight-color: transparent; transition: background-color 0.3s; }
+    body.ice-mode { background-color: #EBF5FB; }
+    body.roll-mode { background-color: #FAF0E6; }
+    body.tea-mode { background-color: #F5EBE6; }
+    body.oden-mode { background-color: #ECEFEA; }
+    .drag-item { touch-action: none; user-select: none; -webkit-user-select: none; }
+    .drag-item:hover .control-ring { opacity: 1; }
+    @keyframes shake {
+      0%, 100% { transform: translateY(0); }
+      25% { transform: translateY(-8px) rotate(-3deg); }
+      75% { transform: translateY(8px) rotate(3deg); }
+    }
+    .shake-anim { animation: shake 0.4s ease-in-out infinite; }
+  </style>
+</head>
+<body class="min-h-screen py-4 px-3 flex flex-col items-center select-none">
+
+  <div class="w-full max-w-md bg-[#F5EFE4] rounded-[28px] overflow-hidden border-4 border-[#1E5136] shadow-2xl flex flex-col pb-6" id="main-container">
+    
+    <div class="grid grid-cols-5 gap-0.5 bg-[#123623] p-1 text-center text-xs font-black text-slate-400" id="tab-bar">
+      <button id="tab-zongzi" class="py-2 rounded-t-xl bg-[#1E5136] text-[#FDF03A] border-b-2 border-[#FDF03A]">肉粽</button>
+      <button id="tab-ice" class="py-2 rounded-t-xl hover:text-white">礤冰</button>
+      <button id="tab-roll" class="py-2 rounded-t-xl hover:text-white">春捲</button>
+      <button id="tab-tea" class="py-2 rounded-t-xl hover:text-white">珍奶</button>
+      <button id="tab-oden" class="py-2 rounded-t-xl hover:text-white">黑輪</button>
+    </div>
+
+    <header class="bg-[#1E5136] py-3 text-center text-white" id="header-bar">
+      <h1 class="text-base font-black tracking-widest text-[#FDF8F0]" id="header-title">咱來縛肉粽！</h1>
+    </header>
+
+    <div class="px-3 pt-4 space-y-4 flex-1">
+      <section class="bg-[#FFFDF9] rounded-2xl p-4 border border-[#F3EAD3] shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-sm font-bold text-[#1E5136]" id="panel-title">壹、澎湃的料</h2>
+          <span class="bg-[#F2DF3A] text-[#1E5136] text-[10px] font-extrabold px-1.5 py-0.5 rounded-full" id="engine-badge">🔊 傳統台語</span>
+        </div>
+        <div class="grid grid-cols-2 gap-3" id="ingredients-grid"></div>
+        <div class="bg-[#FFFDEB] border border-[#FDEAA8] rounded-xl p-2 text-[10px] text-[#8B6B3F] mt-3" id="tip-text">你可以簡單 [- / +] 放入配料，並直接在下方粽葉上任意調整位置與旋轉唷！</div>
+      </section>
+
+      <section class="bg-white rounded-2xl p-4 border border-[#F3EAD3] shadow-sm flex flex-col">
+        <div id="canvas-area" class="w-full h-56 bg-slate-50 rounded-xl border border-dashed border-[#D6C7AE] relative overflow-hidden flex items-center justify-center">
+          <div id="canvas-hint" class="absolute top-3 left-3 right-3 bg-white/95 border border-emerald-100 px-3 py-1 rounded-full text-center text-[10px] text-emerald-800 z-30">👉 請點選上方配料 [ + ] 放入！</div>
+          
+          <div id="unwrapped-state" class="relative w-full h-full flex items-center justify-center">
+            <div id="canvas-bg-graphic" class="w-full h-full flex items-center justify-center"></div>
+            <div id="spawning-container" class="absolute inset-0 z-20"></div>
+          </div>
+
+          <div id="wrapped-state" class="hidden absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-[#F4F9FB]">
+            <div id="completed-graphic" class="relative w-28 h-28 flex items-center justify-center"></div>
+            <span class="mt-2 bg-[#729A82] text-white text-xs font-bold px-3 py-0.5 rounded-full" id="wrapped-badge"><span id="wrapped-badge-text">縛好矣！芳貢貢！</span></span>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mt-3">
+          <button id="btn-restart" class="bg-[#5A6C7C] text-white font-bold py-2 rounded-xl text-xs active:scale-95 transition-all">🔀 重新來過</button>
+          <button id="btn-finish" class="bg-[#F36F21] text-white font-black py-2 rounded-xl text-xs active:scale-95 transition-all"><span id="finish-text">我綁好矣！</span></button>
+        </div>
+      </section>
+
+      <section class="bg-[#1E5136] rounded-2xl p-3 border border-[#123623] text-white" id="speech-section">
+        <div class="bg-[#17432C] rounded-2xl p-3 flex items-center space-x-3" id="speech-box">
+          <button id="btn-speak-all" class="w-10 h-12 bg-white text-[#1E5136] rounded-full flex items-center justify-center shadow-md active:scale-90"><i class="fa-solid fa-microphone text-base" id="mic-icon"></i></button>
+          <div class="flex-1 text-xs">
+            <span class="text-emerald-300 font-bold block mb-0.5" id="speech-prefix">我的肉粽內底有：</span>
+            <div id="speech-sentence" class="font-black text-[#FDF03A] leading-relaxed">(請點選上方配料 + 放入...)</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="text-[10px] text-slate-400 mt-4 text-center select-none font-medium" id="page-footer">
+    咱來縛肉粽、礤冰、包春捲、鋪珍奶、燙黑輪！<br>@史秀里冊房 Tō͘ Sìn-liông 製作 2026
+  </div>
+
+  <script>
+    const zongziData = [{id:'yolk',name:'\u5375\u4ec1',sub:'nn\u0302g-j\u00een',emoji:'\u{1f7e1}'},{id:'mushroom',name:'\u9999\u83c7',sub:'hiunn-koo',emoji:'\u{1f344}'},{id:'peanut',name:'\u5857\u8c46',sub:'th\u00f4o-t\u0101u',emoji:'\u{1f95c}'},{id:'pork',name:'\u6ef7\u8089',sub:'l\u00f3o-bah',emoji:'\u{1f953}'}];
+    const iceData = [{id:'redbean',name:'\u7d05\u8c46',sub:'\u00e2ng-t\u0101u',emoji:'\u{1f534}'},{id:'pearl',name:'\u7c89\u5713',sub:'h\u00fan-\u00eenn',emoji:'\u26ab'},{id:'pinkkui',name:'\u7c89\u7cbf',sub:'h\u00fan-ku\u00e9',emoji:'\u{1f7e8}'},{id:'condensed',name:'\u7149\u4e73',sub:'li\u0101n-ling',emoji:'\u{1f95b}'}];
+    const rollData = [{id:'peanutpowder',name:'\u82b1\u751f\u7c89',sub:'th\u00f4o-t\u0101u-h\u00fan',emoji:'\u{1f7e4}'},{id:'cabbage',name:'\u9ad8\u9e97\u83dc',sub:'ko-l\u00ea-tsh\u00e0i',emoji:'\u{1f96c}'},{id:'redpork',name:'\u7d05\u7cdf\u8089',sub:'\u00e2ng-tsau-bah',emoji:'\u{1f969}'},{id:'tofu',name:'\u8c46\u4e7e',sub:'t\u0101u-kuann',emoji:'\u{1f9f1}'}];
+    const teaData = [{id:'t-pearl',name:'\u7c89\u5713',sub:'h\u00fan-\u00eenn',emoji:'\u26ab'},{id:'coconut',name:'\u6930\u679c',sub:'i\u00e2-k\u00f3',emoji:'\u{1f965}'},{id:'pudding',name:'\u5e03\u4e01',sub:'p\u00f2o-t\u012bng',emoji:'\u{1f36e}'},{id:'icecube',name:'\u51b0\u584a',sub:'ping-ku\u00e1i',emoji:'\u{1f9ca}'}];
+    const odenData = [{id:'oo-lian',name:'\u9ed1\u8f2a',sub:'oo-li\u00e2n',emoji:'\u{1f362}'},{id:'tempura',name:'\u751c\u4e0d\u8fa3',sub:'thian-p\u00fa-lah',emoji:'\u{1f358}'},{id:'blooddish',name:'\u7c73\u8840',sub:'m\u00ed-hueh',emoji:'\u{1f7eb}'},{id:'sauce',name:'\u751c\u8fa3\u91ac',sub:'tiann-la\u030dh-tsi\u00f9nn',emoji:'\u{1f96b}'}];
+
+    let currentMode='zongzi', basket={}, canvasItems=[], isWrapped=false, activeAudio=null, isAudioUnlocked=false;
+
+    const mainContainer=document.getElementById('main-container'), headerBar=document.getElementById('header-bar'), headerTitle=document.getElementById('header-title'), panelTitle=document.getElementById('panel-title'), gridEl=document.getElementById('ingredients-grid'), tipText=document.getElementById('tip-text'), canvasHint=document.getElementById('canvas-hint'), spawnContainer=document.getElementById('spawning-container'), canvasBgGraphic=document.getElementById('canvas-bg-graphic'), completedGraphic=document.getElementById('completed-graphic'), unwrappedState=document.getElementById('unwrapped-state'), wrappedState=document.getElementById('wrapped-state'), wrappedBadge=document.getElementById('wrapped-badge'), wrappedBadgeText=document.getElementById('wrapped-badge-text'), finishText=document.getElementById('finish-text'), speechSection=document.getElementById('speech-section'), speechBox=document.getElementById('speech-box'), speechPrefix=document.getElementById('speech-prefix'), speechSentenceEl=document.getElementById('speech-sentence'), micIcon=document.getElementById('mic-icon'), engineBadge=document.getElementById('engine-badge');
+    const btnRestart=document.getElementById('btn-restart'), btnFinish=document.getElementById('btn-finish'), btnSpeakAll=document.getElementById('btn-speak-all');
+
+    function init() {
+      switchMode('zongzi');
+      btnRestart.addEventListener('pointerdown', restartAction);
+      btnFinish.addEventListener('pointerdown', toggleWrapState);
+      btnSpeakAll.addEventListener('pointerdown', playFullSpeechSentence);
+      document.getElementById('tab-zongzi').addEventListener('pointerdown',()=>switchMode('zongzi'));
+      document.getElementById('tab-ice').addEventListener('pointerdown',()=>switchMode('shavedIce'));
+      document.getElementById('tab-roll').addEventListener('pointerdown',()=>switchMode('springRoll'));
+      document.getElementById('tab-tea').addEventListener('pointerdown',()=>switchMode('pearlMilkTea'));
+      document.getElementById('tab-oden').addEventListener('pointerdown',()=>switchMode('taiwanOden'));
+      window.addEventListener('pointerdown', unlockAudioPipeline, { passive: true });
+    }
+
+    function unlockAudioPipeline() {
+      if (isAudioUnlocked) return;
+      try {
+        const dummy = new Audio();
+        dummy.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==";
+        dummy.play().then(() => { isAudioUnlocked = true; }).catch(() => {});
+      } catch (e) {}
+    }
+
+    window.switchMode = function(mode) {
+      if(activeAudio){activeAudio.pause(); activeAudio=null;}
+      if('speechSynthesis' in window) window.speechSynthesis.cancel();
+      document.getElementById('canvas-area').classList.remove('shake-anim');
+      currentMode=mode; basket={}; canvasItems=[]; spawnContainer.innerHTML=''; isWrapped=false;
+
+      ['tab-zongzi','tab-ice','tab-roll','tab-tea','tab-oden'].forEach(id=>{ document.getElementById(id).className="py-2 rounded-t-xl hover:text-white"; });
+      document.body.className="min-h-screen py-4 px-3 flex flex-col items-center select-none";
+
+      if(mode==='zongzi'){
+        mainContainer.className="w-full max-w-md bg-[#F5EFE4] rounded-[28px] overflow-hidden border-4 border-[#1E5136] shadow-2xl flex flex-col pb-6";
+        headerBar.className="bg-[#1E5136] py-3 text-center text-white"; headerTitle.innerText="\u54b1\u4f86\u7e1b\u8089\u7cbd\uFF01";
+        panelTitle.className="text-sm font-bold text-[#1E5136]"; tipText.innerHTML="\u4f60\u53ef\u4ee5\u7c21\u55ae <strong>[- / +]</strong> \u653e\u5165\u914d\u6599\uFF0C\u4e26\u76f4\u63a5\u5728\u4e0b\u65b9\u7cbd\u8449\u4e0a\u4efb\u610f\u8abf\u6574\u4f4d\u7f6e\u8207\u65cb\u8f49\u5537\uFF01";
+        canvasHint.innerText="\u{1f449} \u8acb\u9ede\u9078\u4e0a\u65b9\u914d\u6599 [ + ] \u653e\u5165\u8089\u7cbd\u8449\u4e2d\uFF01"; finishText.innerText="\u6211\u7d81\u597d\u77e3\uFF01";
+        speechSection.className="bg-[#1E5136] rounded-2xl p-3 border border-[#123623] text-white"; speechBox.className="bg-[#17432C] rounded-2xl p-3 flex items-center space-x-3 border border-[#123522]";
+        speechPrefix.innerText="\u9019\u662f\u6211\u7684\u8089\u7cbd\uFF0C\u6211\u7684\u8089\u7cbd\u5167\u5e95\u6709\uFF1A"; wrappedBadge.className="mt-2 bg-[#729A82] text-white text-xs font-bold px-3 py-0.5 rounded-full"; wrappedBadgeText.innerText="\u7e1b\u597d\u77e3\uFF01\u82b3\u8ca2\u8ca2\uFF01";
+        document.getElementById('tab-zongzi').className="py-2 rounded-t-xl bg-[#1E5136] text-[#FDF03A] border-b-2 border-[#FDF03A]";
+        canvasBgGraphic.innerHTML=`<svg class="w-36 h-36" viewBox="0 0 200 200"><path d="M15 110 C 40 160, 160 160, 185 110 Z" fill="#2d6e49"/><path d="M55 110 C 55 80, 145 80, 145 110 Z" fill="#FAF8F0" stroke="#E5DEC9" stroke-width="2"/></svg>`;
+        completedGraphic.innerHTML=`<svg class="w-28 h-28" viewBox="0 0 200 200"><path d="M100 30 L40 145 L100 175 Z" fill="#1b5232"/><path d="M100 30 L100 175 L160 145 Z" fill="#2d6e49"/><path d="M73 85 Q 100 95 127 85" stroke="#E2C999" stroke-width="4"/></svg>`;
+      }else if(mode==='shavedIce'){
+        document.body.classList.add('ice-mode');
+        mainContainer.className="w-full max-w-md bg-[#F4F9FC] rounded-[28px] overflow-hidden border-4 border-[#0284C7] shadow-2xl flex flex-col pb-6";
+        headerBar.className="bg-[#0284C7] py-3 text-center text-white"; headerTitle.innerText="\u54b1\u4f86\u7924\u7924\u51b0\uFF01";
+        panelTitle.className="text-sm font-bold text-[#0284C7]"; tipText.innerHTML="\u4f60\u53ef\u4ee5\u7c21\u55ae <strong>[- / +]</strong> \u653e\u5165\u914d\u6599\uFF0C\u4e26\u76f4\u63a5\u5728\u4e0b\u65b9\u7924\u51b0\u4e0a\u4efb\u610f\u8abf\u6574\u4f4d\u7f6e\u8207\u65cb\u8f49\u5537\uFF01";
+        canvasHint.innerText="\u{1f449} \u8acb\u9ede\u9078\u4e0a\u65b9\u914d\u6599 [ + ] \u653e\u5165\u7924\u51b0\u5c71\u4e18\u4e0a\uFF01"; finishText.innerText="\u6211\u7924\u597d\u77e3\uFF01";
+        speechSection.className="bg-[#0284C7] rounded-2xl p-3 border border-[#0369A1] text-white"; speechBox.className="bg-[#0C4A6E] rounded-2xl p-3 flex items-center space-x-3 border border-[#082F49]";
+        speechPrefix.innerText="\u9019\u5c40\u662f\u6211\u7924\u7684\u7924\u51b0\uFF0C\u6211\u7924\u7684\u7924\u51b0\u5167\u5e95\u6709\uFF1A"; wrappedBadge.className="mt-2 bg-[#0284C7] text-white text-xs font-bold px-3 py-0.5 rounded-full"; wrappedBadgeText.innerText="\u6dcb\u7149\u4e73\u77e3\uFF01\u751c\u7c85\u7c85\uFF01";
+        document.getElementById('tab-ice').className="py-2 rounded-t-xl bg-[#0284C7] text-[#FDF03A] border-b-2 border-[#FDF03A]";
+        canvasBgGraphic.innerHTML=`<svg class="w-36 h-36" viewBox="0 0 200 200"><path d="M40 110 C 40 40, 160 40, 160 110 Z" fill="#FFFFFF" stroke="#E3F2FD"/><path d="M30 110 L170 110 L150 160 L50 160 Z" fill="#E1F5FE" stroke="#81D4FA" stroke-width="2"/></svg>`;
+        completedGraphic.innerHTML=`<svg class="w-36 h-36" viewBox="0 0 200 200"><path d="M40 110 C 40 40, 160 40, 160 110 Z" fill="#FFFFFF" stroke="#E3F2FD"/><path d="M100 45 Q 95 75 92 95" stroke="#FFF59D" stroke-width="8" stroke-linecap="round"/><path d="M30 110 L170 110 L150 160 L50 160 Z" fill="#E1F5FE" stroke="#81D4FA" stroke-width="2"/></svg>`;
+      }else if(mode==='springRoll'){
+        document.body.classList.add('roll-mode');
+        mainContainer.className="w-full max-w-md bg-[#FAF5EF] rounded-[28px] overflow-hidden border-4 border-[#B45309] shadow-2xl flex flex-col pb-6";
+        headerBar.className="bg-[#B45309] py-3 text-center text-white"; headerTitle.innerText="\u54b1\u4f86\u5305\u6625\u6372\uFF01";
+        panelTitle.className="text-sm font-bold text-[#B45309]"; tipText.innerHTML="\u4f60\u53ef\u4ee5\u7c21\u55ae <strong>[- / +]</strong> \u653e\u5165\u6625\u6372\u914d\u6599\uFF0C\u4e26\u76f4\u63a5\u5728\u4e0b\u65b9\u6f64\u9905\u76ae\u4e0a\u4efb\u610f\u8abf\u6574\u4f4d\u7f6e\u8207\u65cb\u8f49\u5537\uFF01";
+        canvasHint.innerText="\u{1f449} \u8acb\u9ede\u9078\u4e0a\u65b9\u914d\u6599 [ + ] \u653e\u5728\u6f64\u9905\u76ae\u4e0a\uFF01"; finishText.innerText="\u6211\u5305\u597d\u77e3\uFF01";
+        speechSection.className="bg-[#B45309] rounded-2xl p-3 border border-[#78350F] text-white"; speechBox.className="bg-[#78350F] rounded-2xl p-3 flex items-center space-x-3 border border-[#451A03]";
+        speechPrefix.innerText="\u9019\u5c40\u662f\u6211\u5305\u7684\u6625\u6372\uFF0C\u6211\u6625\u6372\u5167\u5e95\u6709\uFF1A"; wrappedBadge.className="mt-2 bg-[#D97706] text-white text-xs font-bold px-3 py-0.5 rounded-full"; wrappedBadgeText.innerText = "\u6372\u597d\u77e3\uFF01\u771f\u82b3\uFF0C\u7dca\u4f86\u98df\uFF01";
+        document.getElementById('tab-roll').className="py-2 rounded-t-xl bg-[#B45309] text-[#FDF03A] border-b-2 border-[#FDF03A]";
+        canvasBgGraphic.innerHTML=`<svg class="w-36 h-36" viewBox="0 0 200 200"><circle cx="100" cy="100" r="75" fill="#FFF8F0" stroke="#EADCC9" stroke-width="2"/></svg>`;
+        completedGraphic.innerHTML=`<svg class="w-36 h-36" viewBox="0 0 200 200"><rect x="40" y="80" width="120" height="44" rx="15" fill="#FFF5EA" stroke="#D7CCC8" stroke-width="2"/></svg>`;
+      }else if(mode==='pearlMilkTea'){
+        document.body.classList.add('tea-mode');
+        mainContainer.className="w-full max-w-md bg-[#F5EBE6] rounded-[28px] overflow-hidden border-4 border-[#8B5A2B] shadow-2xl flex flex-col pb-6";
+        headerBar.className="bg-[#8B5A2B] py-3 text-center text-white"; headerTitle.innerText="\u54b1\u4f86\u92ea\u73cd\u5976\uFF01";
+        panelTitle.className="text-sm font-bold text-[#8B5A2B]"; tipText.innerHTML="\u4f60\u53ef\u4ee5\u7c21\u55ae <strong>[- / +]</strong> \u653e\u5165\u914d\u6599\uFF0C\u676f\u5b50\u5167\u96b1\u7d04\u6709\u51b0\u584a\u6416\u6643\u8072\u5537\uFF01";
+        canvasHint.innerText="\u{1f449} \u8acb\u9ede\u9078\u4e0a\u65b9\u914d\u6599 [ + ] \u653e\u5165\u73cd\u5976\u676f\u4e2d\uFF01"; finishText.innerText="\u6211\u6416\u597d\u77e3\uFF01";
+        speechSection.className="bg-[#8B5A2B] rounded-2xl p-3 border border-[#5C3A1A] text-white"; speechBox.className="bg-[#5C3A1A] rounded-2xl p-3 flex items-center space-x-3 border border-[#3D2512]";
+        speechPrefix.innerText="\u9019\u662f\u6211\u6416\u7684\u73cd\u5976\uFF0C\u6211\u73cd\u5976\u5167\u5e95\u6709\uFF1A"; wrappedBadge.className="mt-2 bg-[#8B5A2B] text-white text-xs font-bold px-3 py-0.5 rounded-full"; wrappedBadgeText.innerText="\u6416\u4e88\u52fb\u77e3\uFF01\u8aa0\u82b3\u8aa0\u597d\u98f2\uFF01";
+        document.getElementById('tab-tea').className="py-2 rounded-t-xl bg-[#8B5A2B] text-[#FDF03A] border-b-2 border-[#FDF03A]";
+        canvasBgGraphic.innerHTML=`<svg class="w-36 h-36" viewBox="0 0 200 200"><path d="M60 20 L140 20 L120 160 L80 160 Z" fill="none" stroke="#A1A1A1" stroke-width="3"/><path d="M65 50 L135 50 L120 158 L80 158 Z" fill="#E6D5C3" opacity="0.6"/></svg>`;
+        completedGraphic.innerHTML=`<svg class="w-36 h-36" viewBox="0 0 200 200"><path d="M60 20 L140 20 L120 160 L80 160 Z" fill="none" stroke="#A1A1A1" stroke-width="3"/><circle cx="90" cy="120" r="8" fill="#1A1A1A"/><circle cx="110" cy="140" r="8" fill="#1A1A1A"/></svg>`;
+      }else if(mode==='taiwanOden'){
+        document.body.classList.add('oden-mode');
+        mainContainer.className="w-full max-w-md bg-[#ECEFEA] rounded-[28px] overflow-hidden border-4 border-[#123F27] shadow-2xl flex flex-col pb-6";
+        headerBar.className="bg-[#123F27] py-3 text-center text-white"; headerTitle.innerText="\u54b1\u4f86\u71d9\u9ed1\u8f2a\uFF01";
+        panelTitle.className="text-sm font-bold text-[#123F27]"; tipText.innerHTML="\u4f60\u53ef\u4ee5\u7c21\u55ae <strong>[- / +]</strong> \u653e\u5165\u9ed1\u8f2a\uFF0C\u9019\u662f\u5192\u8457\u71b1\u6c23\u7684\u4e5d\u5bae\u683c\u9435\u934b\u5537\uFF01";
+        canvasHint.innerText="\u{1f449} \u8acb\u9ede\u9078\u4e0a\u65b9\u914d\u6599 [ + ] \u653e\u5165\u9ed1\u8f2a\u9435\u934b\u4e2d\uFF01"; finishText.innerText="\u6211\u71d9\u597d\u77e3\uFF01";
+        speechSection.className="bg-[#123F27] rounded-2xl p-3 border border-[#0A2416] text-white"; speechBox.className="bg-[#0A2416] rounded-2xl p-3 flex items-center space-x-3 border border-[#05160E]";
+        speechPrefix.innerText="\u9019\u662f\u6211\u71d9\u7684\u9ed1\u8f2a\uFF0C\u6211\u9ed1\u8f2a\u5167\u5e95\u6709\uFF1A"; wrappedBadge.className="mt-2 bg-[#E11D48] text-white text-xs font-bold px-3 py-0.5 rounded-full"; wrappedBadgeText.innerText="\u6dcb\u818f\u77e3\uFF01\u7dca\u4f86\u98df\uFF01";
+        document.getElementById('tab-oden').className="py-2 rounded-t-xl bg-[#123F27] text-[#FDF03A] border-b-2 border-[#FDF03A]";
+        canvasBgGraphic.innerHTML=`<svg class="w-36 h-36" viewBox="0 0 200 200"><rect x="30" y="30" width="140" height="140" fill="#78716C"/><line x1="76" y1="30" x2="76" y2="170" stroke="#FFF"/><line x1="30" y1="76" x2="170" y2="76" stroke="#FFF"/></svg>`;
+        completedGraphic.innerHTML=`<svg class="w-36 h-36" viewBox="0 0 200 200"><ellipse cx="100" cy="110" rx="60" ry="30" fill="#E5E5E5"/><path d="M60 90 Q 100 120 140 100" stroke="#DC2626" stroke-width="8" fill="none"/></svg>`;
+      }
+      wrappedState.classList.add('hidden'); unwrappedState.classList.remove('hidden'); canvasHint.style.opacity='1';
+      renderIngredients(); updateSentenceLayout();
+    }
+
+    function renderIngredients() {
+      gridEl.innerHTML = '';
+      let list = zongziData;
+      if (currentMode==='shavedIce') list = iceData;
+      if (currentMode==='springRoll') list = rollData;
+      if (currentMode==='pearlMilkTea') list = teaData;
+      if (currentMode==='taiwanOden') list = odenData;
+
+      list.forEach(ing => {
+        const count = basket[ing.id] || 0;
+        const card = document.createElement('div');
+        card.className = "bg-white p-2 rounded-xl border border-[#F3EAD3] flex flex-col items-center shadow-sm text-center text-xs";
+        card.innerHTML = `
+          <div class="text-xl">${ing.emoji}</div>
+          <span class="block font-extrabold text-slate-800 cursor-pointer">${ing.name} <i class="fa-solid fa-volume-high text-[8px] text-slate-400"></i></span>
+          <span class="block text-[8px] text-amber-800 font-mono bg-amber-50 px-1 rounded-full mt-0.5 mb-1">${ing.sub}</span>
+          <div class="flex items-center w-full justify-between bg-slate-50 border border-slate-200 rounded-md p-0.5">
+            <button class="w-5 h-5 bg-red-50 text-red-500 font-black rounded btn-minus">-</button>
+            <span id="qty-${ing.id}" class="font-black text-slate-700 w-5">${count}</span>
+            <button class="w-5 h-5 bg-emerald-50 text-emerald-500 font-black rounded btn-plus">+</button>
+          </div>
+        `;
+        card.querySelector('span').addEventListener('pointerdown',(e)=>{e.preventDefault(); playTaigiTTS(ing.name, card.querySelector('i'));});
+        card.querySelector('.btn-minus').addEventListener('pointerdown',(e)=>{e.preventDefault(); changeCount(ing.id, -1, card.querySelector('i'));});
+        card.querySelector('.btn-plus').addEventListener('pointerdown',(e)=>{e.preventDefault(); changeCount(ing.id, 1, card.querySelector('i'));});
+        gridEl.appendChild(card);
+      });
+    }
+
+    function changeCount(id, delta, node) {
+      if(isWrapped){showFloatingToast("\u26a0\ufe0f \u8acb\u5148\u9ede\u64ca\u300c\u91cd\u65b0\u4f86\u904e\u300d\u518d\u8abf\u6574\u914d\u6599\u5537\uFF01"); return;}
+      basket[id] = Math.max(0, (basket[id] || 0) + delta);
+      document.getElementById(`qty-${id}`).innerText = basket[id];
+      let list = currentMode==='zongzi'?zongziData:(currentMode==='shavedIce'?iceData:(currentMode==='springRoll'?rollData:(currentMode==='pearlMilkTea'?teaData:odenData)));
+      const ing = list.find(i => i.id === id);
+      if(delta > 0){spawnEmoji(ing); playTaigiTTS(ing.name, node);} else {removeEmoji(id);}
+      updateSentenceLayout();
+    }
+
+    function spawnEmoji(ing) {
+      canvasHint.style.opacity = '0';
+      const el = document.createElement('div');
+      el.className = "drag-item absolute cursor-grab z-20 group text-xl";
+      const bounds = spawnContainer.getBoundingClientRect();
+      const rx = (bounds.width / 2) + (Math.random() * 40 - 20) - 10;
+      const ry = (bounds.height / 2) + (Math.random() * 40 - 20) - 10;
+      const ra = Math.floor(Math.random() * 360);
+      el.style.left = `${rx}px`; el.style.top = `${ry}px`; el.style.transform = `rotate(${ra}deg)`;
+      el.addEventListener('dragstart', e => e.preventDefault());
+      el.innerHTML = `
+        <div>${ing.emoji}</div>
+        <div class="control-ring opacity-0 group-hover:opacity-100 absolute -top-2 -left-2 w-8 h-8 border border-dashed border-amber-600 rounded-full flex items-center justify-between pointer-events-none">
+          <div class="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-amber-600 rounded-full flex items-center justify-center text-white text-[6px] cursor-pointer pointer-events-auto btn-rotate"><i class="fa-solid fa-sync"></i></div>
+          <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center text-white text-[6px] cursor-pointer pointer-events-auto btn-delete"><i class="fa-solid fa-trash-can"></i></div>
+        </div>
+      `;
+      spawnContainer.appendChild(el);
+      const item = { id: 'c-'+Date.now(), ingId: ing.id, x: rx, y: ry, angle: ra, dom: el };
+      canvasItems.push(item);
+      bindDrag(item);
+    }
+
+    function removeEmoji(ingId) {
+      const idx = canvasItems.map(x => x.ingId).lastIndexOf(ingId);
+      if (idx !== -1) { canvasItems[idx].dom.remove(); canvasItems.splice(idx, 1); }
+      if (canvasItems.length === 0) canvasHint.style.opacity = '1';
+    }
+
+    function bindDrag(item) {
+      const el = item.dom; let dragging = false, startX, startY, itemX, itemY, rotating = false, centerAngle = 0;
+      el.addEventListener('pointerdown', (e) => {
+        if (isWrapped) return;
+        if (e.target.closest('.btn-rotate')) {
+          rotating = true; el.setPointerCapture(e.pointerId);
+          const rect = el.getBoundingClientRect();
+          centerAngle = Math.atan2(e.clientY - (rect.top + rect.height/2), e.clientX - (rect.left + rect.width/2)) * (180/Math.PI) - item.angle;
+          e.stopPropagation(); return;
+        }
+        if (e.target.closest('.btn-delete')) {
+          e.stopPropagation(); el.remove(); canvasItems = canvasItems.filter(x => x.id !== item.id);
+          basket[item.ingId] = Math.max(0, basket[item.ingId] - 1); renderIngredients();
+          if (canvasItems.length === 0) canvasHint.style.opacity = '1';
+          updateSentenceLayout(); return;
+        }
+        dragging = true; el.setPointerCapture(e.pointerId);
+        startX = e.clientX; startY = e.clientY; itemX = parseFloat(el.style.left); itemY = parseFloat(el.style.top);
+        e.stopPropagation();
+      });
+      el.addEventListener('pointermove', (e) => {
+        if (dragging) {
+          const bounds = spawnContainer.getBoundingClientRect();
+          let nx = Math.max(0, Math.min(bounds.width - 20, itemX + (e.clientX - startX)));
+          let ny = Math.max(0, Math.min(bounds.height - 20, itemY + (e.clientY - startY)));
+          el.style.left = `${nx}px`; el.style.top = `${ny}px`; item.x = nx; item.y = ny;
+        }
+        if (rotating) {
+          const rect = el.getBoundingClientRect();
+          let calculated = (Math.atan2(e.clientY - (rect.top + rect.height/2), e.clientX - (rect.left + rect.width/2)) * (180/Math.PI)) - centerAngle;
+          item.angle = calculated; el.style.transform = `rotate(${calculated}deg)`;
+        }
+      });
+      const end = (e) => { dragging = false; rotating = false; try{el.releasePointerCapture(e.pointerId);}catch(err){} };
+      el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+    }
+
+    function toggleWrapState() {
+      if (canvasItems.length === 0) { showFloatingToast("\u26a0\ufe0f \u88e1\u9762\u7a7a\u7a7a\uFF0C\u8acb\u5148\u52a0\u5165\u7f8e\u5473\u7684\u914d\u6599\u5537\uFF01"); return; }
+      isWrapped = !isWrapped;
+      if (isWrapped) {
+        if (currentMode === 'pearlMilkTea') {
+          document.getElementById('canvas-area').classList.add('shake-anim');
+          setTimeout(() => { document.getElementById('canvas-area').classList.remove('shake-anim'); }, 1200);
+        }
+        unwrappedState.classList.add('opacity-0', 'scale-75');
+        setTimeout(() => {
+          unwrappedState.classList.add('hidden'); wrappedState.classList.remove('hidden');
+          let colors = currentMode==='zongzi'?['#2d6e49','#FAF2E5']:(currentMode==='shavedIce'?['#0284C7','#FFFFFF']:['#B45309','#FFF5EA']);
+          confetti({ particleCount: 60, spread: 45, origin: { y: 0.75 }, colors: colors });
+        }, 150);
+        finishText.innerText = currentMode==='zongzi'?"\u89e3\u958b\u8089\u7cbd":(currentMode==='shavedIce'?"\u878d\u5316\u7924\u51b0":(currentMode==='springRoll'?"\u5c55\u958b\u6625\u6372":(currentMode==='pearlMilkTea'?"\u91cd\u6416\u73cd\u5976":"\u91cd\u71d9\u9ed1\u8f2a")));
+      } else {
+        wrappedState.classList.add('hidden'); unwrappedState.classList.remove('hidden', 'opacity-0', 'scale-75');
+        finishText.innerText = currentMode==='zongzi'?"\u6211\u7d81\u597d\u77e3\uFF01":(currentMode==='shavedIce'?"\u6211\u7924\u597d\u77e3\uFF01":(currentMode==='springRoll'?"\u6211\u5305\u597d\u77e3\uFF01":(currentMode==='pearlMilkTea'?"\u6211\u6416\u597d\u77e3\uFF01":"\u6211\u71d9\u597d\u77e3\uFF01")));
+      }
+      updateSentenceLayout();
+    }
+
+    function restartAction() {
+      basket = {}; canvasItems = []; spawnContainer.innerHTML = ''; isWrapped = false;
+      if (activeAudio) { activeAudio.pause(); activeAudio = null; }
+      document.getElementById('canvas-area').classList.remove('shake-anim');
+      renderIngredients(); wrappedState.classList.add('hidden'); unwrappedState.classList.remove('hidden'); canvasHint.style.opacity = '1';
+      finishText.innerText = currentMode==='zongzi'?"\u6211\u7d81\u597d\u77e3\uFF01":(currentMode==='shavedIce'?"\u6211\u7924\u597d\u77e3\uFF01":(currentMode==='springRoll'?"\u6211\u5305\u597d\u77e3\uFF01":(currentMode==='pearlMilkTea'?"\u6211\u6416\u597d\u77e3\uFF01":"\u6211\u71d9\u597d\u77e3\uFF01")));
+      updateSentenceLayout(); showFloatingToast("\u{1f504} \u5df2\u5168\u90e8\u6e05\u7406\u4e7e\u6de8\uFF0C\u91cd\u65b0\u4f86\u904e\uFF01");
+    }
+
+    function updateSentenceLayout() {
+      let list = currentMode==='zongzi'?zongziData:(currentMode==='shavedIce'?iceData:(currentMode==='springRoll'?rollData:(currentMode==='pearlMilkTea'?teaData:odenData)));
+      const active = list.filter(ing => basket[ing.id] > 0);
+      if (active.length === 0) { speechSentenceEl.innerHTML = `<span class="text-emerald-300 font-normal opacity-60">(\u8acb\u9ede\u9078\u4e0a\u65b9\u914d\u6599 + \u653e\u5165\u5176\u4e2d...)</span>`; return; }
+      let elements = active.map(ing => `${ing.name} ${basket[ing.id]}\u500b`);
+      if (elements.length === 1) { speechSentenceEl.innerText = elements[0] + "\uFF01"; } 
+      else { const last = elements.pop(); speechSentenceEl.innerText = elements.join('\u3001') + "\uFF0C\u95a3\u6709 " + last + "\uFF01"; }
+    }
+
+    function playTaigiTTS(phraseText, iconNode) {
+      let cleanText = phraseText.replace(/\u5857\u8c46/g, "\u571f\u8c46").replace(/\u6ef7\u8089/g, "\u9b6f\u8089").replace(/\u7c89\u7cbf/g, "\u7c89\u7cbf").replace(/\u9ed1\u8f2a/g, "\u9ed1\u8f2a").replace(/\u751c\u4e0d\u8fa3/g, "\u751c\u4e0d\u8fa3");
+      if (activeAudio) { activeAudio.pause(); activeAudio = null; }
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+
+      const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=nan&client=gtx&q=${encodeURIComponent(cleanText)}`;
+      const origClass = iconNode ? iconNode.className : "fa-solid fa-microphone text-emerald-800";
+      if (iconNode) iconNode.className = "fa-solid fa-volume-high text-emerald-800 animate-bounce";
+
+      activeAudio = new Audio(); activeAudio.referrerPolicy = "no-referrer"; activeAudio.src = url;
+      activeAudio.onended = () => { if (iconNode) iconNode.className = origClass; };
+      activeAudio.onerror = () => {
+        if (iconNode) iconNode.className = origClass;
+        const utterance = new SpeechSynthesisUtterance(phraseText.replace(/\u95a3\u6709/g, "\u9084\u6709"));
+        utterance.lang = "zh-TW"; utterance.rate = 0.85; window.speechSynthesis.speak(utterance);
+      };
+      activeAudio.play().catch(() => { if (iconNode) iconNode.className = origClass; });
+    }
+
+    function playFullSpeechSentence() {
+      let list = currentMode==='zongzi'?zongziData:(currentMode==='shavedIce'?iceData:(currentMode==='springRoll'?rollData:(currentMode==='pearlMilkTea'?teaData:odenData)));
+      const active = list.filter(ing => basket[ing.id] > 0);
+      if (active.length === 0) { showFloatingToast("\u{1f4a1} \u76ee\u524d\u6c92\u6709\u597d\u6599\uFF0C\u8acb\u5148\u653e\u5165\u914d\u6599\uFF01"); return; }
+      
+      let sentence = currentMode==='zongzi'?"\u9019\u662f\u6211\u7e1b\u7684\u8089\u7cbd\uFF0C\u5167\u5e95\u6709\uFF1A":(currentMode==='shavedIce'?"\u9019\u5c40\u662f\u6211\u7924\u7684\u7924\u51b0\uFF0C\u5167\u5e95\u6709\uFF1A":(currentMode==='springRoll'?"\u9019\u662f\u6211\u5305\u7684\u6625\u6372\uFF0C\u5167\u5e95\u6709\uFF1A":(currentMode==='pearlMilkTea'?"\u9019\u662f\u6211\u6416\u7684\u73cd\u5976\uFF0C\u5167\u5e95\u6709\uFF1A":"\u9019\u662f\u6211\u71d9\u7684\u9ed1\u8f2a\uFF0C\u5167\u5e95\u6709\uFF1A")));
+      const names = active.map(ing => `${ing.name} ${basket[ing.id]}\u500b`);
+      if (names.length === 1) { sentence += names[0]; } else { const last = names.pop(); sentence += names.join('\u3001') + "\uFF0C\u95a3\u6709 " + last; }
+      
+      if (currentMode==='springRoll') sentence += isWrapped ? "\u3002\u5df2\u7d93\u5305\u597d\u77e3\uFF0C\u771f\u82b3\uFF0C\u7dca\u4f86\u98df\uFF01" : "\u3002\u6b32\u6e96\u5099\u4f86\u5305\u77e3\uFF01";
+      else if (currentMode==='zongzi') sentence += isWrapped ? "\u3002\u5df2\u7d93\u7e1b\u597d\u77e3\uFF0C\u82b3\u8ca2\u8ca2\u5594\uFF01" : "\u3002\u6b32\u6e96\u5099\u4f86\u7e1b\u77e3\uFF01";
+      else if (currentMode==='pearlMilkTea') sentence += isWrapped ? "\u3002\u5fae\u7cd6\u5fae\u51b0\uFF0C\u8aa0\u82b3\u8aa0\u597d\u98f2\u5594\uFF01" : "\u3002\u6b32\u6e96\u5099\u4f86\u6416\u77e3\uFF01";
+      else if (currentMode==='taiwanOden') sentence += isWrapped ? "\u3002\u6dcb\u818f\u77e3\uFF0C\u95a3\u6709\u514d\u8cbb\u7684\u9ed1\u8f2a\u6e6f\uFF0C\u7dca\u4f86\u98df\uFF01" : "\u3002\u6b32\u6e96\u5099\u4f86\u71d9\u77e3\uFF01";
+      else sentence += isWrapped ? "\u3002\u6dcb\u7149\u4e73\u77e3\uFF0C\u751c\u7c85\u7c85\u5594\uFF01" : "\u3002\u6b32\u6e96\u5099\u6dcb\u7149\u4e73\u77e3\uFF01";
+      
+      playTaigiTTS(sentence, micIcon);
+    }
+
+    function showFloatingToast(msg) {
+      const active = document.getElementById('floating-toast'); if (active) active.remove();
+      const toast = document.createElement('div'); toast.id = 'floating-toast';
+      toast.className = "fixed bottom-20 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs py-2 px-4 rounded-xl z-50 shadow-lg text-center w-11/12 max-w-xs";
+      toast.innerHTML = `\u{1f514} ${msg}`; document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3500);
+    }
+
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
