@@ -269,7 +269,7 @@
       { id: 'mungbean', name: '\u7da0\u8c46', sub: 'li\u030dk-t\u0101u', emoji: '\u{1f7e2}' },
       { id: 'pearl', name: '\u7c89\u5713', sub: 'h\u00fan-\u00eenn', emoji: '\u26ab' },
       { id: 'taroball', name: '\u828b\u5713', sub: '\u014do-\u00eenn', emoji: '\u{1f360}' },
-      { id: 'aiyu', name: '\u611b\u7389', sub: '\u00e0i-io\u030dk', emoji: '\u{1f7e1}' },
+      { id: 'aiyu', name: '\u8581\u8558', sub: '\u00f2-gi\u00f4', emoji: '\u{1f7e1}' },
       { id: 'grassjelly', name: '\u4ed9\u8349', sub: 'sian-tsh\u00e1u', emoji: '\u{1f5a4}' },
       { id: 'pinkkui', name: '\u7c89\u7cbf', sub: 'h\u00fan-ku\u00e9', emoji: '\u{1f7e8}' },
       { id: 'condensed', name: '\u725b\u5976\u818f', sub: 'g\u00fb-leng-ko', emoji: '\u{1f95b}' }
@@ -502,7 +502,7 @@
         speechPrefix.innerText = "\u9019\u676f\u662f\u6211\u6416\u00ea\u73cd\u5976\uFF0C\u6211\u73cd\u5976\u5167\u5e95\u6709\uFF1A";
         speechPrefix.className = "text-[10px] text-amber-200 font-bold tracking-wider mb-0.5";
         wrappedBadge.className = "mt-3 bg-[#8B5A2B] text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-sm flex items-center space-x-1";
-        wrappedBadgeText.innerText = "\u6416\u4e88\u52fb\u77e3\uFF01\u8aa0\u82b3\u8aa0\u597d\u98f2\uFF01";
+        wrappedBadgeText.innerText = "\u6416\u4e88\u52fb\u77e3\uFF01\u8aa0\u82b3\u8aa0\u597d\u5549\uFF01";
 
         document.getElementById('tab-tea').className = "py-2 text-center font-black text-[10px] sm:text-xs rounded-t-xl transition-all duration-300 bg-[#8B5A2B] text-[#FDF03A] border-b-2 border-[#FDF03A]";
         loadPearlTeaGraphics();
@@ -985,7 +985,7 @@
         if (currentMode==='zongzi') doneMsg = "\u{1f389} \u8089\u7cbd\u7d81\u597d\u4e86\uFF01\u9999\u5473\u64b2\u9f3b\uFF01";
         else if (currentMode==='shavedIce') doneMsg = "\u{1f367} \u725b\u5976\u818f\u6dcb\u597d\u4e86\uFF01\u751c\u7c85\u7c85\uFF0C\u771f\u597d\u98df\uFF01";
         else if (currentMode==='springRoll') doneMsg = "\u{1f32f} \u6f64\u9905\u5305\u597d\u77e3\uFF01\u771f\u82b3\uFF0C\u7dca\u4f86\u98df\uFF01";
-        else if (currentMode==='pearlMilkTea') doneMsg = "\u{1f9cb} \u73cd\u5976\u6416\u597d\u77e3\uFF01\u8aa0\u9999\u8aa0\u597d\u98f2\uFF01";
+        else if (currentMode==='pearlMilkTea') doneMsg = "\u{1f9cb} \u73cd\u5976\u6416\u597d\u77e3\uFF01\u8aa0\u9999\u8aa0\u597d\u5549\uFF01";
         else if (currentMode==='taiwanOden') doneMsg = "\u{1f362} \u70cf\u8f2a\u71d9\u597d\u77e3\uFF01\u71b1\u547c\u547c\u6dcb\u818f\u56c9\uFF01";
         showFloatingToast(doneMsg);
       } else {
@@ -1123,7 +1123,7 @@
       "\u7da0\u8c46": "\u529b\u8c46",
       "\u7c89\u5713": "\u6df7\u8d0f",
       "\u828b\u5713": "\u5594\u5f71",
-      "\u611b\u7389": "\u611b\u512a",
+      "\u8581\u8558": "\u5594\u512a",
       "\u4ed9\u8349": "\u9bae\u8349",
       "\u7c89\u7cbf": "\u6df7\u8cb4",
       "\u725b\u5976\u818f": "\u5433\u4e43\u52fe",
@@ -1175,7 +1175,7 @@
       "\u7da0\u8c46": ["10745"],
       "\u7c89\u5713": ["06478"],
       "\u828b\u5713": ["03492"],
-      "\u611b\u7389": ["12372"],
+      "\u8581\u8558": ["12372"],
       "\u4ed9\u8349": ["01362"],
       "\u7c89\u7cbf": ["06487"],
       "\u725b\u5976\u818f": ["01238", "10814"],
@@ -1549,7 +1549,7 @@
       } else if (currentMode === 'pearlMilkTea') {
         if (isWrapped) {
           spokenSentence += activeIngredients.length === 1 ? namesList[0] : (namesList.slice(0, -1).join('\u3001') + "\uFF0C\u95a3\u6709 " + namesList[namesList.length - 1]);
-          spokenSentence += "\u3002\u6416\u4e88\u52fb\u77e3\uFF01\u8aa0\u82b3\u8aa0\u597d\u98f2\uFF01";
+          spokenSentence += "\u3002\u6416\u4e88\u52fb\u77e3\uFF01\u8aa0\u82b3\u8aa0\u597d\u5549\uFF01";
           segments.push("09505", "00573", "00596", "03350", "comma", "10084", "04443", "10084", "02282", "07042"); // \u6416 + \u4e88 + \u52fb + \u77e3, \u8aa0 + \u82b3 + \u8aa0 + \u597d + \u5549
         } else {
           spokenSentence += activeIngredients.length === 1 ? namesList[0] : (namesList.slice(0, -1).join('\u3001') + "\uFF0C\u95a3\u6709 " + namesList[namesList.length - 1]);

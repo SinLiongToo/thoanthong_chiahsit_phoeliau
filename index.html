@@ -268,7 +268,7 @@
       { id: 'mungbean', name: '綠豆', sub: 'li̍k-tāu', emoji: '🟢' },
       { id: 'pearl', name: '粉圓', sub: 'hún-înn', emoji: '⚫' },
       { id: 'taroball', name: '芋圓', sub: 'ōo-înn', emoji: '🍠' },
-      { id: 'aiyu', name: '愛玉', sub: 'ài-io̍k', emoji: '🟡' },
+      { id: 'aiyu', name: '薁蕘', sub: 'ò-giô', emoji: '🟡' },
       { id: 'grassjelly', name: '仙草', sub: 'sian-tsháu', emoji: '🖤' },
       { id: 'pinkkui', name: '粉粿', sub: 'hún-kué', emoji: '🟨' },
       { id: 'condensed', name: '牛奶膏', sub: 'gû-leng-ko', emoji: '🥛' }
@@ -501,7 +501,7 @@
         speechPrefix.innerText = "這杯是我搖ê珍奶\uFF0C我珍奶內底有\uFF1A";
         speechPrefix.className = "text-[10px] text-amber-200 font-bold tracking-wider mb-0.5";
         wrappedBadge.className = "mt-3 bg-[#8B5A2B] text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-sm flex items-center space-x-1";
-        wrappedBadgeText.innerText = "搖予勻矣\uFF01誠芳誠好飲\uFF01";
+        wrappedBadgeText.innerText = "搖予勻矣\uFF01誠芳誠好啉\uFF01";
 
         document.getElementById('tab-tea').className = "py-2 text-center font-black text-[10px] sm:text-xs rounded-t-xl transition-all duration-300 bg-[#8B5A2B] text-[#FDF03A] border-b-2 border-[#FDF03A]";
         loadPearlTeaGraphics();
@@ -984,7 +984,7 @@
         if (currentMode==='zongzi') doneMsg = "🎉 肉粽綁好了\uFF01香味撲鼻\uFF01";
         else if (currentMode==='shavedIce') doneMsg = "🍧 牛奶膏淋好了\uFF01甜粅粅\uFF0C真好食\uFF01";
         else if (currentMode==='springRoll') doneMsg = "🌯 潤餅包好矣\uFF01真芳\uFF0C緊來食\uFF01";
-        else if (currentMode==='pearlMilkTea') doneMsg = "🧋 珍奶搖好矣\uFF01誠香誠好飲\uFF01";
+        else if (currentMode==='pearlMilkTea') doneMsg = "🧋 珍奶搖好矣\uFF01誠香誠好啉\uFF01";
         else if (currentMode==='taiwanOden') doneMsg = "🍢 烏輪燙好矣\uFF01熱呼呼淋膏囉\uFF01";
         showFloatingToast(doneMsg);
       } else {
@@ -1098,8 +1098,8 @@
       "已經縛好矣\uFF0C芳貢貢喔": "以經邦好啊\uFF0C胖貢貢喔",
       "已經縛好矣\uFF0C芳貢貢": "以經邦好啊\uFF0C胖貢貢",
       "淋牛奶膏矣\uFF0C甜粅粅喔": "林吳乃勾阿\uFF0C電莫莫喔",
-      "搖予勻矣\uFF0C誠芳誠好飲": "尤齁溫阿\uFF0C行胖行好林",
-      "搖予勻矣\uFF01誠芳誠好飲": "尤齁溫阿\uFF01行胖行好林",
+      "搖予勻矣\uFF0C誠芳誠好啉": "尤齁溫阿\uFF0C行胖行好林",
+      "搖予勻矣\uFF01誠芳誠好啉": "尤齁溫阿\uFF01行胖行好林",
       "淋膏矣\uFF0C緊來食": "藍高阿\uFF0C緊來甲",
       "欲準備來包矣": "貝準逼來包阿",
       "欲準備來縛矣": "貝準逼來邦阿",
@@ -1122,7 +1122,7 @@
       "綠豆": "力豆",
       "粉圓": "混贏",
       "芋圓": "喔影",
-      "愛玉": "愛優",
+      "薁蕘": "喔優",
       "仙草": "鮮草",
       "粉粿": "混貴",
       "牛奶膏": "吳乃勾",
@@ -1174,7 +1174,7 @@
       "綠豆": ["10745"],
       "粉圓": ["06478"],
       "芋圓": ["03492"],
-      "愛玉": ["12372"],
+      "薁蕘": ["12372"],
       "仙草": ["01362"],
       "粉粿": ["06487"],
       "牛奶膏": ["01238", "10814"],
@@ -1548,7 +1548,7 @@
       } else if (currentMode === 'pearlMilkTea') {
         if (isWrapped) {
           spokenSentence += activeIngredients.length === 1 ? namesList[0] : (namesList.slice(0, -1).join('\u3001') + "\uFF0C閣有 " + namesList[namesList.length - 1]);
-          spokenSentence += "\u3002搖予勻矣\uFF01誠芳誠好飲\uFF01";
+          spokenSentence += "\u3002搖予勻矣\uFF01誠芳誠好啉\uFF01";
           segments.push("09505", "00573", "00596", "03350", "comma", "10084", "04443", "10084", "02282", "07042"); // 搖 + 予 + 勻 + 矣, 誠 + 芳 + 誠 + 好 + 啉
         } else {
           spokenSentence += activeIngredients.length === 1 ? namesList[0] : (namesList.slice(0, -1).join('\u3001') + "\uFF0C閣有 " + namesList[namesList.length - 1]);
