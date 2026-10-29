@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
@@ -223,6 +223,7 @@
       台語語音音檔來源：中華民國教育部《<a href="https://sutian.moe.edu.tw/" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-800 text-slate-700 font-semibold">臺灣台語常用詞辭典</a>》。音檔著作權歸屬中華民國教育部所有，本專案僅供教育推廣、語言學習與非商業用途使用。
     </p>
     <p class="text-[11px] text-slate-500 font-medium">@史秀里冊房 Tō͘ Sìn-liông 製作 2026</p>
+    <p style="font-size: 0.72rem; margin-top: 6px; color: #64748b; opacity: 0.85;"><i class="fa-solid fa-clock-rotate-left"></i> 最後更新日期 (Last Updated): 2026-10-30</p>
   </footer>
 
   <!-- Help Instruction Modal for Silent devices -->
@@ -1099,8 +1100,8 @@
       "\u5df2\u7d93\u7e1b\u597d\u77e3\uFF0C\u82b3\u8ca2\u8ca2\u5594": "\u4ee5\u7d93\u90a6\u597d\u554a\uFF0C\u80d6\u8ca2\u8ca2\u5594",
       "\u5df2\u7d93\u7e1b\u597d\u77e3\uFF0C\u82b3\u8ca2\u8ca2": "\u4ee5\u7d93\u90a6\u597d\u554a\uFF0C\u80d6\u8ca2\u8ca2",
       "\u6dcb\u725b\u5976\u818f\u77e3\uFF0C\u751c\u7c85\u7c85\u5594": "\u6797\u5433\u4e43\u52fe\u963f\uFF0C\u96fb\u83ab\u83ab\u5594",
-      "\u6416\u4e88\u52fb\u77e3\uFF0C\u8aa0\u82b3\u8aa0\u597d\u98f2": "\u5c24\u9f41\u6eab\u963f\uFF0C\u884c\u80d6\u884c\u597d\u6797",
-      "\u6416\u4e88\u52fb\u77e3\uFF01\u8aa0\u82b3\u8aa0\u597d\u98f2": "\u5c24\u9f41\u6eab\u963f\uFF01\u884c\u80d6\u884c\u597d\u6797",
+      "\u6416\u4e88\u52fb\u77e3\uFF0C\u8aa0\u82b3\u8aa0\u597d\u5549": "\u5c24\u9f41\u6eab\u963f\uFF0C\u884c\u80d6\u884c\u597d\u6797",
+      "\u6416\u4e88\u52fb\u77e3\uFF01\u8aa0\u82b3\u8aa0\u597d\u5549": "\u5c24\u9f41\u6eab\u963f\uFF01\u884c\u80d6\u884c\u597d\u6797",
       "\u6dcb\u818f\u77e3\uFF0C\u7dca\u4f86\u98df": "\u85cd\u9ad8\u963f\uFF0C\u7dca\u4f86\u7532",
       "\u6b32\u6e96\u5099\u4f86\u5305\u77e3": "\u8c9d\u6e96\u903c\u4f86\u5305\u963f",
       "\u6b32\u6e96\u5099\u4f86\u7e1b\u77e3": "\u8c9d\u6e96\u903c\u4f86\u90a6\u963f",
@@ -1171,7 +1172,7 @@
       "\u9e79\u9d28\u5375": ["13087", "12135"],
       
       // Shaved Ice
-      "\u7d05\u8c46": ["53611"],
+      "\u7d05\u8c46": ["25670"],
       "\u7da0\u8c46": ["10745"],
       "\u7c89\u5713": ["06478"],
       "\u828b\u5713": ["03492"],
@@ -1248,118 +1249,183 @@
       return result;
     }
 
-    let activeQueueAudio = null;
-    let queueCancelToken = 0;
+    // ==========================================
+    // MOE Taigi Audio CDN Version Configuration
+    // ==========================================
+    const MOE_AUDIO_CDN_VERSION = "20261019-0109";
+    const MOE_AUDIO_CDN_BASE = `https://chhoetaigi.github.io/KipSutianDataMirror/public/${MOE_AUDIO_CDN_VERSION}/imtong/sutiau/`;
 
-    function playTaigiTTS(phraseText, buttonIconElement, segmentIds = null) {
-      unlockAudioPipeline();
+    let audioCtx = null;
+    const audioBufferCache = new Map();
+    let currentQueueToken = 0;
+    let activeSourceNodes = [];
 
-      // Cancel any currently playing queue or synthesis
-      queueCancelToken++;
-      const token = queueCancelToken;
-
-      if (activeQueueAudio) {
-        activeQueueAudio.pause();
-        activeQueueAudio = null;
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+        }
       }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    // Strip leading and trailing silent pads from MOE dictionary MP3 recordings
+    function trimAudioBuffer(ctx, buffer, threshold = 0.015) {
+      const channelData = buffer.getChannelData(0);
+      const len = channelData.length;
+      let start = 0;
+      let end = len - 1;
+
+      while (start < len && Math.abs(channelData[start]) < threshold) start++;
+      while (end > start && Math.abs(channelData[end]) < threshold) end--;
+
+      // Keep safe safety margin (~15ms)
+      const margin = Math.floor(buffer.sampleRate * 0.015);
+      start = Math.max(0, start - margin);
+      end = Math.min(len, end + margin);
+
+      const trimmedLength = end - start;
+      if (trimmedLength <= 0) return buffer;
+
+      const trimmed = ctx.createBuffer(buffer.numberOfChannels, trimmedLength, buffer.sampleRate);
+      for (let c = 0; c < buffer.numberOfChannels; c++) {
+        trimmed.copyToChannel(buffer.getChannelData(c).subarray(start, end), c);
+      }
+      return trimmed;
+    }
+
+    // Fetch and decode with in-memory AudioBuffer caching
+    async function fetchAndDecodeAudio(id) {
+      const cleanNum = String(parseInt(id, 10));
+      const cleanId = cleanNum.includes('(') ? cleanNum : `${cleanNum}(1)`;
+      if (audioBufferCache.has(cleanId)) return audioBufferCache.get(cleanId);
+
+      const ctx = getAudioContext();
+      if (!ctx) throw new Error("AudioContext unavailable");
+
+      const isLocal = window.location.protocol === 'file:' || 
+                      window.location.hostname === 'localhost' || 
+                      window.location.hostname === '127.0.0.1';
+
+      let arrayBuffer = null;
+      // In local mode, if audio/{id}.ogg exists, try local first
+      if (isLocal) {
+        try {
+          const locRes = await fetch(`audio/${id}.ogg`);
+          if (locRes.ok) arrayBuffer = await locRes.arrayBuffer();
+        } catch (e) {}
+      }
+
+      // If not local or local fetch failed, fetch from official MOE mirror
+      if (!arrayBuffer) {
+        const cdnUrl = `${MOE_AUDIO_CDN_BASE}${cleanId}.mp3`;
+        const res = await fetch(cdnUrl);
+        if (!res.ok) throw new Error(`HTTP ${res.status} for ${cleanId}`);
+        arrayBuffer = await res.arrayBuffer();
+      }
+
+      const decoded = await ctx.decodeAudioData(arrayBuffer);
+      const trimmed = trimAudioBuffer(ctx, decoded);
+      audioBufferCache.set(cleanId, trimmed);
+      return trimmed;
+    }
+
+    function stopAllAudio() {
+      currentQueueToken++;
+      activeSourceNodes.forEach(node => {
+        try { node.stop(); } catch (e) {}
+      });
+      activeSourceNodes = [];
       if (activeAudio) {
-        activeAudio.pause();
+        try { activeAudio.pause(); } catch (e) {}
         activeAudio = null;
       }
-      if ('speechSynthesis' in window) {
+      if ('speechSynthesis' in window && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) {
         window.speechSynthesis.cancel();
       }
+    }
+
+    async function playTaigiTTS(phraseText, buttonIconElement, segmentIds = null) {
+      unlockAudioPipeline();
+      stopAllAudio();
+
+      const token = currentQueueToken;
+      const originalClass = buttonIconElement ? buttonIconElement.className : "fa-solid fa-microphone text-lg";
 
       // If segmentIds is not passed, check if we can resolve the single word
       if (!segmentIds && taigiAudioMap[phraseText]) {
         segmentIds = taigiAudioMap[phraseText];
       }
 
-      const originalClass = buttonIconElement ? buttonIconElement.className : "fa-solid fa-microphone text-lg";
-
       if (segmentIds && segmentIds.length > 0) {
-        // Option A: Play using MoeDict audio queue (Stitching)
+        // Option A: Seamless Web Audio API gapless player
         if (buttonIconElement) {
           buttonIconElement.className = "fa-solid fa-volume-high text-lg text-emerald-800 animate-bounce";
         }
         setEngineBadgeStatus('real');
 
-        let index = 0;
+        try {
+          const ctx = getAudioContext();
+          if (!ctx) throw new Error("AudioContext unavailable");
 
-        function playNextSegment() {
-          if (token !== queueCancelToken) return;
+          const audioIdsToFetch = segmentIds.filter(id => id !== 'comma' && id !== 'period' && id !== 'pause');
+          const bufferMap = new Map();
+          await Promise.all(audioIdsToFetch.map(async (id) => {
+            const buf = await fetchAndDecodeAudio(id);
+            bufferMap.set(id, buf);
+          }));
 
-          if (index >= segmentIds.length) {
-            if (buttonIconElement) buttonIconElement.className = originalClass;
-            return;
-          }
+          if (token !== currentQueueToken) return;
 
-          const id = segmentIds[index];
-          // Handle pseudo-segments
-          if (id === 'comma' || id === 'period' || id === 'pause') {
-            const delay = id === 'period' ? 650 : 350;
-            activeQueueAudio = {
-              pause: () => { clearTimeout(pauseTimeout); }
-            };
-            const pauseTimeout = setTimeout(() => {
-              if (token !== queueCancelToken) return;
-              index++;
-              playNextSegment();
-            }, delay);
-            return;
-          }
+          let startTime = ctx.currentTime + 0.05;
+          const nodes = [];
 
-          const isLocal = window.location.protocol === 'file:' || 
-                          window.location.hostname === 'localhost' || 
-                          window.location.hostname === '127.0.0.1';
-          const localUrl = `audio/${id}.ogg`;
-          const cdnUrl = `https://1763c5ee9859e0316ed6-db85b55a6a3fbe33f09b9245992383bd.ssl.cf1.rackcdn.com/${id}.ogg`;
-
-          let audio = new Audio();
-          activeQueueAudio = audio;
-          audio.src = isLocal ? localUrl : cdnUrl;
-
-          audio.onended = () => {
-            index++;
-            playNextSegment();
-          };
-
-          audio.onerror = () => {
-            if (isLocal && !audio.src.startsWith('https://')) {
-              console.warn(`Local audio failed for ${id}, trying MoeDict CDN...`);
-              if (token !== queueCancelToken) return;
-
-              let cdnAudio = new Audio();
-              activeQueueAudio = cdnAudio;
-              cdnAudio.src = cdnUrl;
-              cdnAudio.onended = () => {
-                index++;
-                playNextSegment();
-              };
-              cdnAudio.onerror = () => {
-                console.error(`CDN audio failed for ${id}. Skipping.`);
-                index++;
-                playNextSegment();
-              };
-              cdnAudio.play().catch(() => {
-                index++;
-                playNextSegment();
-              });
+          segmentIds.forEach(id => {
+            if (id === 'comma') {
+              startTime += 0.35; // 350ms natural pause
+            } else if (id === 'period') {
+              startTime += 0.65; // 650ms sentence pause
+            } else if (id === 'pause') {
+              startTime += 0.25;
             } else {
-              console.error(`Audio failed for ${id}. Skipping.`);
-              index++;
-              playNextSegment();
+              const buf = bufferMap.get(id);
+              if (buf) {
+                const source = ctx.createBufferSource();
+                source.buffer = buf;
+                source.connect(ctx.destination);
+                source.start(startTime);
+                nodes.push(source);
+                startTime += buf.duration;
+              }
             }
-          };
-
-          audio.play().catch(() => {
-            audio.onerror();
           });
-        }
 
-        playNextSegment();
+          activeSourceNodes = nodes;
+
+          if (nodes.length > 0) {
+            const lastNode = nodes[nodes.length - 1];
+            lastNode.onended = () => {
+              if (token === currentQueueToken) {
+                if (buttonIconElement) buttonIconElement.className = originalClass;
+              }
+            };
+          } else {
+            if (buttonIconElement) buttonIconElement.className = originalClass;
+          }
+
+        } catch (err) {
+          console.warn("Web Audio queue playback failed, routing to speech synthesis fallback:", err);
+          if (token === currentQueueToken) {
+            if (buttonIconElement) buttonIconElement.className = originalClass;
+            playOfflineVoiceEngine(phraseText, buttonIconElement);
+          }
+        }
       } else {
-        // Option B: Fallback to old Google Translate TTS (if online) or local homophones
+        // Option B: Fallback to Google Translate TTS or Offline Homophone Engine
         let cleanText = phraseText
           .replace(/\u5857\u8c46/g, "\u571f\u8c46")
           .replace(/\u6ef7\u8089/g, "\u9b6f\u8089")
@@ -1405,25 +1471,18 @@
         return;
       }
 
-      window.speechSynthesis.cancel();
+      if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+        window.speechSynthesis.cancel();
+      }
 
       // Convert chinese phrase text to phonetic equivalent
       const phoneticText = translateToPhoneticTaigi(phraseText);
-      console.log("Synthesizing offline homophones:", phoneticText);
-
       const utterance = new SpeechSynthesisUtterance(phoneticText);
-      utterance.lang = "zh-TW"; // Feed to local Taiwan voice profile
-      utterance.rate = 0.80;    // Pedagogical slower pacing
-      utterance.pitch = 1.0;
-
-      const availableVoices = window.speechSynthesis.getVoices();
-      const taiwanVoice = availableVoices.find(v => v.lang.includes("zh-TW"));
-      if (taiwanVoice) {
-        utterance.voice = taiwanVoice;
-      }
+      utterance.lang = "zh-TW";
+      utterance.rate = 0.95;
 
       const originalClass = buttonIconElement ? buttonIconElement.className : "fa-solid fa-microphone text-lg";
-      
+
       utterance.onstart = () => {
         if (buttonIconElement) {
           buttonIconElement.className = "fa-solid fa-volume-high text-lg text-emerald-800 animate-bounce";
@@ -1481,7 +1540,7 @@
         segments = ["07923", "05013", "03153", "01394", "04386", "11235", "comma", "03153", "11235", "00674", "02449"];
       } else if (currentMode === 'pearlMilkTea') {
         spokenSentence = "\u9019\u676f\u662f\u6211\u6416\u00ea\u73cd\u5976\uFF0C\u6211\u73cd\u5976\u5167\u5e95\u6709\uFF1A";
-        segments = ["07923", "05013", "03153", "09505", "04386", "06422", "53466", "comma", "03153", "06422", "53466", "00674", "02449"];
+        segments = ["07923", "05013", "03153", "09505", "04386", "06422", "01228", "comma", "03153", "06422", "01228", "00674", "02449"];
       } else if (currentMode === 'taiwanOden') {
         spokenSentence = "\u9019\u7897\u662f\u6211\u71d9\u00ea\u70cf\u8f2a\uFF0C\u6211\u70cf\u8f2a\u5167\u5e95\u6709\uFF1A";
         segments = ["07923", "05013", "03153", "11809", "04386", "06248", "11511", "comma", "03153", "06248", "11511", "00674", "02449"];
@@ -1520,7 +1579,7 @@
         if (isWrapped) {
           spokenSentence += activeIngredients.length === 1 ? namesList[0] : (namesList.slice(0, -1).join('\u3001') + "\uFF0C\u95a3\u6709 " + namesList[namesList.length - 1]);
           spokenSentence += "\u3002\u5df2\u7d93\u7e1b\u597d--ah\uFF0C\u82b3\u8ca2\u8ca2\u5594\uFF01";
-          segments.push("50009", "11864", "02282", "03350", "comma", "06396", "04443", "08197"); // \u5df2\u7d93 + \u7e1b + \u597d + \u77e3, \u771f + \u82b3 + \u5594
+          segments.push("22106", "11864", "02282", "03350", "comma", "06396", "04443", "08197"); // \u5df2\u7d93 + \u7e1b + \u597d + \u77e3, \u771f + \u82b3 + \u5594
         } else {
           spokenSentence += activeIngredients.length === 1 ? namesList[0] : (namesList.slice(0, -1).join('\u3001') + "\uFF0C\u95a3\u6709 " + namesList[namesList.length - 1]);
           spokenSentence += "\u3002\u6b32\u6e96\u5099\u4f86\u7e1b\u77e3\uFF01";
@@ -1540,7 +1599,7 @@
         if (isWrapped) {
           spokenSentence += activeIngredients.length === 1 ? namesList[0] : (namesList.slice(0, -1).join('\u3001') + "\uFF0C\u95a3\u6709 " + namesList[namesList.length - 1]);
           spokenSentence += "\u3002\u5df2\u7d93\u5305\u597d--ah\uFF0C\u771f\u82b3\uFF0C\u7dca\u4f86\u98df\uFF01";
-          segments.push("50009", "01394", "02282", "03350", "comma", "06396", "04443", "comma", "10785", "03543", "05588"); // \u5df2\u7d93 + \u5305 + \u597d + \u77e3, \u771f + \u82b3, \u7dca + \u4f86 + \u98df
+          segments.push("22106", "01394", "02282", "03350", "comma", "06396", "04443", "comma", "10785", "03543", "05588"); // \u5df2\u7d93 + \u5305 + \u597d + \u77e3, \u771f + \u82b3, \u7dca + \u4f86 + \u98df
         } else {
           spokenSentence += activeIngredients.length === 1 ? namesList[0] : (namesList.slice(0, -1).join('\u3001') + "\uFF0C\u95a3\u6709 " + namesList[namesList.length - 1]);
           spokenSentence += "\u3002\u6b32\u6e96\u5099\u4f86\u5305\u77e3\uFF01";
@@ -1573,7 +1632,7 @@
 
         function setEngineBadgeStatus(status) {
       if (status === 'real' || status === 'moedict') {
-        engineBadge.innerText = "\u{1f50a} \u840c\u5178\u539f\u97f3";
+        engineBadge.innerText = "\u{1f50a} \u8fad\u5178\u771f\u4eba\u539f\u97f3";
         engineBadge.className = "bg-[#10B981] text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-sm";
       } else if (status === 'google') {
         engineBadge.innerText = "\u{1f50a} \u96f2\u7aef\u53f0\u8a9e";
@@ -1587,7 +1646,7 @@
     function updateEngineBadgeStyle() {
       // Dynamic styles to blend with active themes
       const text = engineBadge.innerText;
-      if (text.includes("\u840c\u5178\u539f\u97f3")) {
+      if (text.includes("\u539f\u97f3")) {
         setEngineBadgeStatus('real');
       } else if (text.includes("\u96f2\u7aef\u53f0\u8a9e")) {
         setEngineBadgeStatus('google');
@@ -1621,6 +1680,7 @@
     }
 
     window.addEventListener('DOMContentLoaded', init);
+  
   //]]>
   </script>
 </body>
