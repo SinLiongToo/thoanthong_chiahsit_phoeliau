@@ -1172,7 +1172,7 @@
       "\u9e79\u9d28\u5375": ["13087", "12135"],
       
       // Shaved Ice
-      "\u7d05\u8c46": ["25670"],
+      "\u7d05\u8c46": ["53611"],
       "\u7da0\u8c46": ["10745"],
       "\u7c89\u5713": ["06478"],
       "\u828b\u5713": ["03492"],
@@ -1250,10 +1250,9 @@
     }
 
     // ==========================================
-    // MOE Taigi Audio CDN Version Configuration
+    // MoeDict Official Cloudflare R2 Audio CDN Configuration
     // ==========================================
-    const MOE_AUDIO_CDN_VERSION = "20261019-0109";
-    const MOE_AUDIO_CDN_BASE = `https://chhoetaigi.github.io/KipSutianDataMirror/public/${MOE_AUDIO_CDN_VERSION}/imtong/sutiau/`;
+    const MOEDICT_R2_BASE = "https://r2-assets.moedict.tw/audio/t/";
 
     let audioCtx = null;
     const audioBufferCache = new Map();
@@ -1300,8 +1299,7 @@
 
     // Fetch and decode with in-memory AudioBuffer caching
     async function fetchAndDecodeAudio(id) {
-      const cleanNum = String(parseInt(id, 10));
-      const cleanId = cleanNum.includes('(') ? cleanNum : `${cleanNum}(1)`;
+      const cleanId = String(id).trim();
       if (audioBufferCache.has(cleanId)) return audioBufferCache.get(cleanId);
 
       const ctx = getAudioContext();
@@ -1312,20 +1310,38 @@
                       window.location.hostname === '127.0.0.1';
 
       let arrayBuffer = null;
-      // In local mode, if audio/{id}.ogg exists, try local first
+
+      // 1. In local mode, try local audio/<cleanId>.ogg first
       if (isLocal) {
         try {
-          const locRes = await fetch(`audio/${id}.ogg`);
+          const locRes = await fetch(`audio/${cleanId}.ogg`);
           if (locRes.ok) arrayBuffer = await locRes.arrayBuffer();
         } catch (e) {}
       }
 
-      // If not local or local fetch failed, fetch from official MOE mirror
+      // 2. Online CDN fallback: Fetch from MoeDict Cloudflare R2
       if (!arrayBuffer) {
-        const cdnUrl = `${MOE_AUDIO_CDN_BASE}${cleanId}.mp3`;
-        const res = await fetch(cdnUrl);
-        if (!res.ok) throw new Error(`HTTP ${res.status} for ${cleanId}`);
-        arrayBuffer = await res.arrayBuffer();
+        const num = String(parseInt(cleanId, 10));
+        const candidateUrls = [
+          `${MOEDICT_R2_BASE}${cleanId}.mp3`,
+          `${MOEDICT_R2_BASE}${cleanId}.ogg`,
+          `${MOEDICT_R2_BASE}${num}.ogg`,
+          `${MOEDICT_R2_BASE}${num}.mp3`
+        ];
+
+        for (const url of candidateUrls) {
+          try {
+            const res = await fetch(url);
+            if (res.ok) {
+              arrayBuffer = await res.arrayBuffer();
+              break;
+            }
+          } catch (e) {}
+        }
+      }
+
+      if (!arrayBuffer) {
+        throw new Error(`Audio fetch failed for ID ${cleanId}`);
       }
 
       const decoded = await ctx.decodeAudioData(arrayBuffer);
@@ -1540,7 +1556,7 @@
         segments = ["07923", "05013", "03153", "01394", "04386", "11235", "comma", "03153", "11235", "00674", "02449"];
       } else if (currentMode === 'pearlMilkTea') {
         spokenSentence = "\u9019\u676f\u662f\u6211\u6416\u00ea\u73cd\u5976\uFF0C\u6211\u73cd\u5976\u5167\u5e95\u6709\uFF1A";
-        segments = ["07923", "05013", "03153", "09505", "04386", "06422", "01228", "comma", "03153", "06422", "01228", "00674", "02449"];
+        segments = ["07923", "05013", "03153", "09505", "04386", "06422", "53466", "comma", "03153", "06422", "53466", "00674", "02449"];
       } else if (currentMode === 'taiwanOden') {
         spokenSentence = "\u9019\u7897\u662f\u6211\u71d9\u00ea\u70cf\u8f2a\uFF0C\u6211\u70cf\u8f2a\u5167\u5e95\u6709\uFF1A";
         segments = ["07923", "05013", "03153", "11809", "04386", "06248", "11511", "comma", "03153", "06248", "11511", "00674", "02449"];
@@ -1579,7 +1595,7 @@
         if (isWrapped) {
           spokenSentence += activeIngredients.length === 1 ? namesList[0] : (namesList.slice(0, -1).join('\u3001') + "\uFF0C\u95a3\u6709 " + namesList[namesList.length - 1]);
           spokenSentence += "\u3002\u5df2\u7d93\u7e1b\u597d--ah\uFF0C\u82b3\u8ca2\u8ca2\u5594\uFF01";
-          segments.push("22106", "11864", "02282", "03350", "comma", "06396", "04443", "08197"); // \u5df2\u7d93 + \u7e1b + \u597d + \u77e3, \u771f + \u82b3 + \u5594
+          segments.push("50009", "11864", "02282", "03350", "comma", "06396", "04443", "08197"); // \u5df2\u7d93 + \u7e1b + \u597d + \u77e3, \u771f + \u82b3 + \u5594
         } else {
           spokenSentence += activeIngredients.length === 1 ? namesList[0] : (namesList.slice(0, -1).join('\u3001') + "\uFF0C\u95a3\u6709 " + namesList[namesList.length - 1]);
           spokenSentence += "\u3002\u6b32\u6e96\u5099\u4f86\u7e1b\u77e3\uFF01";
@@ -1599,7 +1615,7 @@
         if (isWrapped) {
           spokenSentence += activeIngredients.length === 1 ? namesList[0] : (namesList.slice(0, -1).join('\u3001') + "\uFF0C\u95a3\u6709 " + namesList[namesList.length - 1]);
           spokenSentence += "\u3002\u5df2\u7d93\u5305\u597d--ah\uFF0C\u771f\u82b3\uFF0C\u7dca\u4f86\u98df\uFF01";
-          segments.push("22106", "01394", "02282", "03350", "comma", "06396", "04443", "comma", "10785", "03543", "05588"); // \u5df2\u7d93 + \u5305 + \u597d + \u77e3, \u771f + \u82b3, \u7dca + \u4f86 + \u98df
+          segments.push("50009", "01394", "02282", "03350", "comma", "06396", "04443", "comma", "10785", "03543", "05588"); // \u5df2\u7d93 + \u5305 + \u597d + \u77e3, \u771f + \u82b3, \u7dca + \u4f86 + \u98df
         } else {
           spokenSentence += activeIngredients.length === 1 ? namesList[0] : (namesList.slice(0, -1).join('\u3001') + "\uFF0C\u95a3\u6709 " + namesList[namesList.length - 1]);
           spokenSentence += "\u3002\u6b32\u6e96\u5099\u4f86\u5305\u77e3\uFF01";
@@ -1632,7 +1648,7 @@
 
         function setEngineBadgeStatus(status) {
       if (status === 'real' || status === 'moedict') {
-        engineBadge.innerText = "\u{1f50a} \u8fad\u5178\u771f\u4eba\u539f\u97f3";
+        engineBadge.innerText = "\u{1f50a} \u840c\u5178\u771f\u4eba\u539f\u97f3";
         engineBadge.className = "bg-[#10B981] text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-sm";
       } else if (status === 'google') {
         engineBadge.innerText = "\u{1f50a} \u96f2\u7aef\u53f0\u8a9e";

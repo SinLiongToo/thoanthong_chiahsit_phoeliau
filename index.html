@@ -1171,7 +1171,7 @@
       "鹹鴨卵": ["13087", "12135"],
       
       // Shaved Ice
-      "紅豆": ["25670"],
+      "紅豆": ["53611"],
       "綠豆": ["10745"],
       "粉圓": ["06478"],
       "芋圓": ["03492"],
@@ -1249,10 +1249,9 @@
     }
 
     // ==========================================
-    // MOE Taigi Audio CDN Version Configuration
+    // MoeDict Official Cloudflare R2 Audio CDN Configuration
     // ==========================================
-    const MOE_AUDIO_CDN_VERSION = "20261019-0109";
-    const MOE_AUDIO_CDN_BASE = `https://chhoetaigi.github.io/KipSutianDataMirror/public/${MOE_AUDIO_CDN_VERSION}/imtong/sutiau/`;
+    const MOEDICT_R2_BASE = "https://r2-assets.moedict.tw/audio/t/";
 
     let audioCtx = null;
     const audioBufferCache = new Map();
@@ -1299,8 +1298,7 @@
 
     // Fetch and decode with in-memory AudioBuffer caching
     async function fetchAndDecodeAudio(id) {
-      const cleanNum = String(parseInt(id, 10));
-      const cleanId = cleanNum.includes('(') ? cleanNum : `${cleanNum}(1)`;
+      const cleanId = String(id).trim();
       if (audioBufferCache.has(cleanId)) return audioBufferCache.get(cleanId);
 
       const ctx = getAudioContext();
@@ -1311,20 +1309,38 @@
                       window.location.hostname === '127.0.0.1';
 
       let arrayBuffer = null;
-      // In local mode, if audio/{id}.ogg exists, try local first
+
+      // 1. In local mode, try local audio/<cleanId>.ogg first
       if (isLocal) {
         try {
-          const locRes = await fetch(`audio/${id}.ogg`);
+          const locRes = await fetch(`audio/${cleanId}.ogg`);
           if (locRes.ok) arrayBuffer = await locRes.arrayBuffer();
         } catch (e) {}
       }
 
-      // If not local or local fetch failed, fetch from official MOE mirror
+      // 2. Online CDN fallback: Fetch from MoeDict Cloudflare R2
       if (!arrayBuffer) {
-        const cdnUrl = `${MOE_AUDIO_CDN_BASE}${cleanId}.mp3`;
-        const res = await fetch(cdnUrl);
-        if (!res.ok) throw new Error(`HTTP ${res.status} for ${cleanId}`);
-        arrayBuffer = await res.arrayBuffer();
+        const num = String(parseInt(cleanId, 10));
+        const candidateUrls = [
+          `${MOEDICT_R2_BASE}${cleanId}.mp3`,
+          `${MOEDICT_R2_BASE}${cleanId}.ogg`,
+          `${MOEDICT_R2_BASE}${num}.ogg`,
+          `${MOEDICT_R2_BASE}${num}.mp3`
+        ];
+
+        for (const url of candidateUrls) {
+          try {
+            const res = await fetch(url);
+            if (res.ok) {
+              arrayBuffer = await res.arrayBuffer();
+              break;
+            }
+          } catch (e) {}
+        }
+      }
+
+      if (!arrayBuffer) {
+        throw new Error(`Audio fetch failed for ID ${cleanId}`);
       }
 
       const decoded = await ctx.decodeAudioData(arrayBuffer);
@@ -1539,7 +1555,7 @@
         segments = ["07923", "05013", "03153", "01394", "04386", "11235", "comma", "03153", "11235", "00674", "02449"];
       } else if (currentMode === 'pearlMilkTea') {
         spokenSentence = "這杯是我搖ê珍奶\uFF0C我珍奶內底有\uFF1A";
-        segments = ["07923", "05013", "03153", "09505", "04386", "06422", "01228", "comma", "03153", "06422", "01228", "00674", "02449"];
+        segments = ["07923", "05013", "03153", "09505", "04386", "06422", "53466", "comma", "03153", "06422", "53466", "00674", "02449"];
       } else if (currentMode === 'taiwanOden') {
         spokenSentence = "這碗是我燙ê烏輪\uFF0C我烏輪內底有\uFF1A";
         segments = ["07923", "05013", "03153", "11809", "04386", "06248", "11511", "comma", "03153", "06248", "11511", "00674", "02449"];
@@ -1578,7 +1594,7 @@
         if (isWrapped) {
           spokenSentence += activeIngredients.length === 1 ? namesList[0] : (namesList.slice(0, -1).join('\u3001') + "\uFF0C閣有 " + namesList[namesList.length - 1]);
           spokenSentence += "\u3002已經縛好--ah\uFF0C芳貢貢喔\uFF01";
-          segments.push("22106", "11864", "02282", "03350", "comma", "06396", "04443", "08197"); // 已經 + 縛 + 好 + 矣, 真 + 芳 + 喔
+          segments.push("50009", "11864", "02282", "03350", "comma", "06396", "04443", "08197"); // 已經 + 縛 + 好 + 矣, 真 + 芳 + 喔
         } else {
           spokenSentence += activeIngredients.length === 1 ? namesList[0] : (namesList.slice(0, -1).join('\u3001') + "\uFF0C閣有 " + namesList[namesList.length - 1]);
           spokenSentence += "\u3002欲準備來縛矣\uFF01";
@@ -1598,7 +1614,7 @@
         if (isWrapped) {
           spokenSentence += activeIngredients.length === 1 ? namesList[0] : (namesList.slice(0, -1).join('\u3001') + "\uFF0C閣有 " + namesList[namesList.length - 1]);
           spokenSentence += "\u3002已經包好--ah\uFF0C真芳\uFF0C緊來食\uFF01";
-          segments.push("22106", "01394", "02282", "03350", "comma", "06396", "04443", "comma", "10785", "03543", "05588"); // 已經 + 包 + 好 + 矣, 真 + 芳, 緊 + 來 + 食
+          segments.push("50009", "01394", "02282", "03350", "comma", "06396", "04443", "comma", "10785", "03543", "05588"); // 已經 + 包 + 好 + 矣, 真 + 芳, 緊 + 來 + 食
         } else {
           spokenSentence += activeIngredients.length === 1 ? namesList[0] : (namesList.slice(0, -1).join('\u3001') + "\uFF0C閣有 " + namesList[namesList.length - 1]);
           spokenSentence += "\u3002欲準備來包矣\uFF01";
@@ -1631,7 +1647,7 @@
 
         function setEngineBadgeStatus(status) {
       if (status === 'real' || status === 'moedict') {
-        engineBadge.innerText = "🔊 辭典真人原音";
+        engineBadge.innerText = "🔊 萌典真人原音";
         engineBadge.className = "bg-[#10B981] text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-sm";
       } else if (status === 'google') {
         engineBadge.innerText = "🔊 雲端台語";
