@@ -403,8 +403,7 @@
 
     // 4. SWITCH MODE: Layout, Colors, Icons and SVG setup
     window.switchMode = function(mode) {
-      if (activeAudio) { activeAudio.pause(); activeAudio = null; }
-      if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); }
+      stopAllAudio();
 
       currentMode = mode;
       basket = {};
@@ -1003,7 +1002,7 @@
     // 10. Restart Action
     function restartAction() {
       basket = {}; canvasItems = []; spawnContainer.innerHTML = ''; isWrapped = false;
-      if (activeAudio) { activeAudio.pause(); activeAudio = null; }
+      stopAllAudio();
       
       renderIngredients();
       wrappedState.classList.add('hidden');
@@ -1249,118 +1248,56 @@
     }
 
     // ==========================================
-    // MoeDict Official Cloudflare R2 Audio CDN Configuration
+    // MoeDict Audio Engine (HTML5 new Audio Queue)
+    // Works reliably on file://, localhost, and Blogger CDN
     // ==========================================
     const MOEDICT_R2_BASE = "https://r2-assets.moedict.tw/audio/t/";
 
-    let audioCtx = null;
-    const audioBufferCache = new Map();
-    let currentQueueToken = 0;
-    let activeSourceNodes = [];
+    let activeQueueAudio = null;
+    let queueCancelToken = 0;
+    let activeButtonIcon = null;
+    let activeOriginalClass = "";
 
-    function getAudioContext() {
-      if (!audioCtx) {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (AudioContextClass) {
-          audioCtx = new AudioContextClass();
-        }
-      }
-      if (audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
-      return audioCtx;
-    }
-
-    // Strip leading and trailing silent pads from MOE dictionary MP3 recordings
-    function trimAudioBuffer(ctx, buffer, threshold = 0.015) {
-      const channelData = buffer.getChannelData(0);
-      const len = channelData.length;
-      let start = 0;
-      let end = len - 1;
-
-      while (start < len && Math.abs(channelData[start]) < threshold) start++;
-      while (end > start && Math.abs(channelData[end]) < threshold) end--;
-
-      // Keep safe safety margin (~15ms)
-      const margin = Math.floor(buffer.sampleRate * 0.015);
-      start = Math.max(0, start - margin);
-      end = Math.min(len, end + margin);
-
-      const trimmedLength = end - start;
-      if (trimmedLength <= 0) return buffer;
-
-      const trimmed = ctx.createBuffer(buffer.numberOfChannels, trimmedLength, buffer.sampleRate);
-      for (let c = 0; c < buffer.numberOfChannels; c++) {
-        trimmed.copyToChannel(buffer.getChannelData(c).subarray(start, end), c);
-      }
-      return trimmed;
-    }
-
-    // Fetch and decode with in-memory AudioBuffer caching
-    async function fetchAndDecodeAudio(id) {
+    function getAudioCandidates(id) {
       const cleanId = String(id).trim();
-      if (audioBufferCache.has(cleanId)) return audioBufferCache.get(cleanId);
-
-      const ctx = getAudioContext();
-      if (!ctx) throw new Error("AudioContext unavailable");
-
+      const num = String(parseInt(cleanId, 10));
       const isLocal = window.location.protocol === 'file:' || 
                       window.location.hostname === 'localhost' || 
                       window.location.hostname === '127.0.0.1';
 
-      let arrayBuffer = null;
-
-      // 1. In local mode, try local audio/<cleanId>.ogg or .mp3 first
+      const urls = [];
       if (isLocal) {
-        try {
-          const locRes = await fetch(`audio/${cleanId}.ogg`);
-          if (locRes.ok) arrayBuffer = await locRes.arrayBuffer();
-        } catch (e) {}
-        if (!arrayBuffer) {
-          try {
-            const locResMp3 = await fetch(`audio/${cleanId}.mp3`);
-            if (locResMp3.ok) arrayBuffer = await locResMp3.arrayBuffer();
-          } catch (e) {}
+        // Local audio files (.ogg or .mp3)
+        urls.push(`audio/${cleanId}.ogg`);
+        urls.push(`audio/${cleanId}.mp3`);
+        if (num !== cleanId) {
+          urls.push(`audio/${num}.ogg`);
+          urls.push(`audio/${num}.mp3`);
         }
       }
-
-      // 2. Online CDN fallback: Fetch from MoeDict Cloudflare R2
-      if (!arrayBuffer) {
-        const num = String(parseInt(cleanId, 10));
-        const candidateUrls = [
-          `${MOEDICT_R2_BASE}${cleanId}.mp3`,
-          `${MOEDICT_R2_BASE}${cleanId}.ogg`,
-          `${MOEDICT_R2_BASE}${num}.ogg`,
-          `${MOEDICT_R2_BASE}${num}.mp3`
-        ];
-
-        for (const url of candidateUrls) {
-          try {
-            const res = await fetch(url);
-            if (res.ok) {
-              arrayBuffer = await res.arrayBuffer();
-              break;
-            }
-          } catch (e) {}
-        }
+      // Official MoeDict Cloudflare R2 CDN endpoints
+      urls.push(`${MOEDICT_R2_BASE}${cleanId}.mp3`);
+      urls.push(`${MOEDICT_R2_BASE}${cleanId}.ogg`);
+      if (num !== cleanId) {
+        urls.push(`${MOEDICT_R2_BASE}${num}.mp3`);
+        urls.push(`${MOEDICT_R2_BASE}${num}.ogg`);
       }
-
-      if (!arrayBuffer) {
-        throw new Error(`Audio fetch failed for ID ${cleanId}`);
-      }
-
-      const decoded = await ctx.decodeAudioData(arrayBuffer);
-      const trimmed = trimAudioBuffer(ctx, decoded);
-      audioBufferCache.set(cleanId, trimmed);
-      return trimmed;
+      return urls;
     }
 
     function stopAllAudio() {
-      currentQueueToken++;
-      activeSourceNodes.forEach(node => {
-        try { node.stop(); } catch (e) {}
-      });
-      activeSourceNodes = [];
+      queueCancelToken++;
+      if (activeButtonIcon && activeOriginalClass) {
+        activeButtonIcon.className = activeOriginalClass;
+        activeButtonIcon = null;
+        activeOriginalClass = "";
+      }
+      if (activeQueueAudio) {
+        try {
+          if (typeof activeQueueAudio.pause === 'function') activeQueueAudio.pause();
+        } catch (e) {}
+        activeQueueAudio = null;
+      }
       if (activeAudio) {
         try { activeAudio.pause(); } catch (e) {}
         activeAudio = null;
@@ -1370,12 +1307,16 @@
       }
     }
 
-    async function playTaigiTTS(phraseText, buttonIconElement, segmentIds = null) {
+    function playTaigiTTS(phraseText, buttonIconElement, segmentIds = null) {
       unlockAudioPipeline();
       stopAllAudio();
 
-      const token = currentQueueToken;
+      const token = queueCancelToken;
       const originalClass = buttonIconElement ? buttonIconElement.className : "fa-solid fa-microphone text-lg";
+      if (buttonIconElement) {
+        activeButtonIcon = buttonIconElement;
+        activeOriginalClass = originalClass;
+      }
 
       // If segmentIds is not passed, check if we can resolve the single word
       if (!segmentIds && taigiAudioMap[phraseText]) {
@@ -1383,68 +1324,94 @@
       }
 
       if (segmentIds && segmentIds.length > 0) {
-        // Option A: Seamless Web Audio API gapless player
+        // Option A: Play using MoeDict audio queue (Stitching with HTML5 Audio)
         if (buttonIconElement) {
           buttonIconElement.className = "fa-solid fa-volume-high text-lg text-emerald-800 animate-bounce";
         }
         setEngineBadgeStatus('real');
 
-        try {
-          const ctx = getAudioContext();
-          if (!ctx) throw new Error("AudioContext unavailable");
+        let index = 0;
 
-          const audioIdsToFetch = segmentIds.filter(id => id !== 'comma' && id !== 'period' && id !== 'pause');
-          const bufferMap = new Map();
-          await Promise.all(audioIdsToFetch.map(async (id) => {
-            const buf = await fetchAndDecodeAudio(id);
-            bufferMap.set(id, buf);
-          }));
+        function playNextSegment() {
+          if (token !== queueCancelToken) return;
 
-          if (token !== currentQueueToken) return;
-
-          let startTime = ctx.currentTime + 0.05;
-          const nodes = [];
-
-          segmentIds.forEach(id => {
-            if (id === 'comma') {
-              startTime += 0.35; // 350ms natural pause
-            } else if (id === 'period') {
-              startTime += 0.65; // 650ms sentence pause
-            } else if (id === 'pause') {
-              startTime += 0.25;
-            } else {
-              const buf = bufferMap.get(id);
-              if (buf) {
-                const source = ctx.createBufferSource();
-                source.buffer = buf;
-                source.connect(ctx.destination);
-                source.start(startTime);
-                nodes.push(source);
-                startTime += buf.duration;
-              }
+          if (index >= segmentIds.length) {
+            if (buttonIconElement && token === queueCancelToken) {
+              buttonIconElement.className = originalClass;
+              activeButtonIcon = null;
+              activeOriginalClass = "";
             }
-          });
+            return;
+          }
 
-          activeSourceNodes = nodes;
+          const id = segmentIds[index];
 
-          if (nodes.length > 0) {
-            const lastNode = nodes[nodes.length - 1];
-            lastNode.onended = () => {
-              if (token === currentQueueToken) {
-                if (buttonIconElement) buttonIconElement.className = originalClass;
-              }
+          // Handle pseudo-segments (pauses)
+          if (id === 'comma' || id === 'period' || id === 'pause') {
+            const delay = id === 'period' ? 650 : (id === 'pause' ? 250 : 350);
+            let pauseTimeout = setTimeout(() => {
+              if (token !== queueCancelToken) return;
+              index++;
+              playNextSegment();
+            }, delay);
+            activeQueueAudio = {
+              pause: () => clearTimeout(pauseTimeout)
             };
-          } else {
-            if (buttonIconElement) buttonIconElement.className = originalClass;
+            return;
           }
 
-        } catch (err) {
-          console.warn("Web Audio queue playback failed, routing to speech synthesis fallback:", err);
-          if (token === currentQueueToken) {
-            if (buttonIconElement) buttonIconElement.className = originalClass;
-            playOfflineVoiceEngine(phraseText, buttonIconElement);
+          const candidateUrls = getAudioCandidates(id);
+          let candIdx = 0;
+
+          function tryPlayCandidate() {
+            if (token !== queueCancelToken) return;
+
+            if (candIdx >= candidateUrls.length) {
+              console.warn(`All audio sources failed for segment ID ${id}. Skipping.`);
+              index++;
+              playNextSegment();
+              return;
+            }
+
+            const url = candidateUrls[candIdx];
+            const audio = new Audio();
+            activeQueueAudio = audio;
+            audio.preload = "auto";
+            audio.src = url;
+
+            let hasMoved = false;
+
+            const nextSegment = () => {
+              if (hasMoved) return;
+              hasMoved = true;
+              if (token !== queueCancelToken) return;
+              index++;
+              playNextSegment();
+            };
+
+            const nextCandidate = () => {
+              if (hasMoved) return;
+              hasMoved = true;
+              if (token !== queueCancelToken) return;
+              candIdx++;
+              tryPlayCandidate();
+            };
+
+            audio.onended = nextSegment;
+            audio.onerror = nextCandidate;
+
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+              playPromise.catch(() => {
+                nextCandidate();
+              });
+            }
           }
+
+          tryPlayCandidate();
         }
+
+        playNextSegment();
       } else {
         // Option B: Fallback to Google Translate TTS or Offline Homophone Engine
         let cleanText = phraseText
@@ -1466,13 +1433,21 @@
         activeAudio.src = url;
 
         activeAudio.onended = () => {
-          if (buttonIconElement) buttonIconElement.className = originalClass;
+          if (buttonIconElement && token === queueCancelToken) {
+            buttonIconElement.className = originalClass;
+            activeButtonIcon = null;
+            activeOriginalClass = "";
+          }
           setEngineBadgeStatus('google');
         };
 
         activeAudio.onerror = () => {
           console.warn("Google Translate TTS failed. Transitioning to local fallback...");
-          if (buttonIconElement) buttonIconElement.className = originalClass;
+          if (buttonIconElement && token === queueCancelToken) {
+            buttonIconElement.className = originalClass;
+            activeButtonIcon = null;
+            activeOriginalClass = "";
+          }
           playOfflineVoiceEngine(phraseText, buttonIconElement);
         };
 
@@ -1480,7 +1455,11 @@
           setEngineBadgeStatus('google');
         }).catch(err => {
           console.warn("Google Translate TTS autoplay blocked. Transitioning to local fallback:", err);
-          if (buttonIconElement) buttonIconElement.className = originalClass;
+          if (buttonIconElement && token === queueCancelToken) {
+            buttonIconElement.className = originalClass;
+            activeButtonIcon = null;
+            activeOriginalClass = "";
+          }
           playOfflineVoiceEngine(phraseText, buttonIconElement);
         });
       }
