@@ -1196,29 +1196,29 @@
       "布丁": ["01652", "00046"],
       "冰塊": ["02113"],
       "綠茶凍": ["10729", "06559", "05738"],
-      "寒天": ["08325"],
+      "寒天": ["08312", "00792"],
       "芋泥": ["03448"],
       
       // Oden
       "烏輪": ["06248", "11511"],
-      "甜不辣": ["00792", "07159", "10888"],
-      "米血": ["02599", "02615"],
+      "甜不辣": ["00792", "00566", "07093"],
+      "米血": ["02599", "02616"],
       "甜辣醬": ["07655", "10888", "12686"],
       "菜頭": ["08996"],
       "貢丸": ["06707"],
       "魚丸": ["08115"],
-      "油豆腐": ["03504"]
+      "油豆腐": ["04270", "03504"]
     };
 
     const numberAudioMap = {
       1: ["00001"],
-      2: ["03597"],
-      3: ["00170"],
+      2: ["03599"],
+      3: ["00171"],
       4: ["01418"],
       5: ["00574"],
       6: ["00587"],
       7: ["00047"],
-      8: ["00055"],
+      8: ["00056"],
       9: ["00048"],
       10: ["00061"]
     };
@@ -1310,12 +1310,18 @@
 
       let arrayBuffer = null;
 
-      // 1. In local mode, try local audio/<cleanId>.ogg first
+      // 1. In local mode, try local audio/<cleanId>.ogg or .mp3 first
       if (isLocal) {
         try {
           const locRes = await fetch(`audio/${cleanId}.ogg`);
           if (locRes.ok) arrayBuffer = await locRes.arrayBuffer();
         } catch (e) {}
+        if (!arrayBuffer) {
+          try {
+            const locResMp3 = await fetch(`audio/${cleanId}.mp3`);
+            if (locResMp3.ok) arrayBuffer = await locResMp3.arrayBuffer();
+          } catch (e) {}
+        }
       }
 
       // 2. Online CDN fallback: Fetch from MoeDict Cloudflare R2
@@ -1546,19 +1552,19 @@
 
       if (currentMode === 'zongzi') {
         spokenSentence = "這是我縛ê肉粽\uFF0C我肉粽內底有\uFF1A";
-        segments = ["07923", "05013", "03153", "11864", "04386", "02788", "comma", "03153", "02788", "00674", "02449"];
+        segments = ["07923", "05013", "03153", "11864", "04386", "02788", "comma", "03153", "02788", "00674", "02450"];
       } else if (currentMode === 'shavedIce') {
         spokenSentence = "這碗是我礤ê礤冰\uFF0C我礤冰內底有\uFF1A";
-        segments = ["07923", "05013", "03153", "13020", "04386", "13026", "comma", "03153", "13026", "00674", "02449"];
+        segments = ["07923", "05013", "03153", "13020", "04386", "13026", "comma", "03153", "13026", "00674", "02450"];
       } else if (currentMode === 'springRoll') {
         spokenSentence = "這是我包ê潤餅\uFF0C我潤餅內底有\uFF1A";
-        segments = ["07923", "05013", "03153", "01394", "04386", "11235", "comma", "03153", "11235", "00674", "02449"];
+        segments = ["07923", "05013", "03153", "01394", "04386", "11235", "comma", "03153", "11235", "00674", "02450"];
       } else if (currentMode === 'pearlMilkTea') {
         spokenSentence = "這杯是我搖ê珍奶\uFF0C我珍奶內底有\uFF1A";
-        segments = ["07923", "05013", "03153", "09505", "04386", "06422", "53466", "comma", "03153", "06422", "53466", "00674", "02449"];
+        segments = ["07923", "05013", "03153", "09505", "04386", "06422", "53466", "comma", "03153", "06422", "53466", "00674", "02450"];
       } else if (currentMode === 'taiwanOden') {
         spokenSentence = "這碗是我燙ê烏輪\uFF0C我烏輪內底有\uFF1A";
-        segments = ["07923", "05013", "03153", "11809", "04386", "06248", "11511", "comma", "03153", "06248", "11511", "00674", "02449"];
+        segments = ["07923", "05013", "03153", "11809", "04386", "06248", "11511", "comma", "03153", "06248", "11511", "00674", "02450"];
       }
 
       segments.push("comma");
@@ -1583,7 +1589,7 @@
         } else if (i === activeIngredients.length - 2) {
           segments.push("comma");
           segments.push("10940"); // 閣
-          segments.push("02449"); // 有
+          segments.push("02450"); // 有
         }
       }
 

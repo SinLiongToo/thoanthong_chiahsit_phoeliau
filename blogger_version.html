@@ -1197,29 +1197,29 @@
       "\u5e03\u4e01": ["01652", "00046"],
       "\u51b0\u584a": ["02113"],
       "\u7da0\u8336\u51cd": ["10729", "06559", "05738"],
-      "\u5bd2\u5929": ["08325"],
+      "\u5bd2\u5929": ["08312", "00792"],
       "\u828b\u6ce5": ["03448"],
       
       // Oden
       "\u70cf\u8f2a": ["06248", "11511"],
-      "\u751c\u4e0d\u8fa3": ["00792", "07159", "10888"],
-      "\u7c73\u8840": ["02599", "02615"],
+      "\u751c\u4e0d\u8fa3": ["00792", "00566", "07093"],
+      "\u7c73\u8840": ["02599", "02616"],
       "\u751c\u8fa3\u91ac": ["07655", "10888", "12686"],
       "\u83dc\u982d": ["08996"],
       "\u8ca2\u4e38": ["06707"],
       "\u9b5a\u4e38": ["08115"],
-      "\u6cb9\u8c46\u8150": ["03504"]
+      "\u6cb9\u8c46\u8150": ["04270", "03504"]
     };
 
     const numberAudioMap = {
       1: ["00001"],
-      2: ["03597"],
-      3: ["00170"],
+      2: ["03599"],
+      3: ["00171"],
       4: ["01418"],
       5: ["00574"],
       6: ["00587"],
       7: ["00047"],
-      8: ["00055"],
+      8: ["00056"],
       9: ["00048"],
       10: ["00061"]
     };
@@ -1311,12 +1311,18 @@
 
       let arrayBuffer = null;
 
-      // 1. In local mode, try local audio/<cleanId>.ogg first
+      // 1. In local mode, try local audio/<cleanId>.ogg or .mp3 first
       if (isLocal) {
         try {
           const locRes = await fetch(`audio/${cleanId}.ogg`);
           if (locRes.ok) arrayBuffer = await locRes.arrayBuffer();
         } catch (e) {}
+        if (!arrayBuffer) {
+          try {
+            const locResMp3 = await fetch(`audio/${cleanId}.mp3`);
+            if (locResMp3.ok) arrayBuffer = await locResMp3.arrayBuffer();
+          } catch (e) {}
+        }
       }
 
       // 2. Online CDN fallback: Fetch from MoeDict Cloudflare R2
@@ -1547,19 +1553,19 @@
 
       if (currentMode === 'zongzi') {
         spokenSentence = "\u9019\u662f\u6211\u7e1b\u00ea\u8089\u7cbd\uFF0C\u6211\u8089\u7cbd\u5167\u5e95\u6709\uFF1A";
-        segments = ["07923", "05013", "03153", "11864", "04386", "02788", "comma", "03153", "02788", "00674", "02449"];
+        segments = ["07923", "05013", "03153", "11864", "04386", "02788", "comma", "03153", "02788", "00674", "02450"];
       } else if (currentMode === 'shavedIce') {
         spokenSentence = "\u9019\u7897\u662f\u6211\u7924\u00ea\u7924\u51b0\uFF0C\u6211\u7924\u51b0\u5167\u5e95\u6709\uFF1A";
-        segments = ["07923", "05013", "03153", "13020", "04386", "13026", "comma", "03153", "13026", "00674", "02449"];
+        segments = ["07923", "05013", "03153", "13020", "04386", "13026", "comma", "03153", "13026", "00674", "02450"];
       } else if (currentMode === 'springRoll') {
         spokenSentence = "\u9019\u662f\u6211\u5305\u00ea\u6f64\u9905\uFF0C\u6211\u6f64\u9905\u5167\u5e95\u6709\uFF1A";
-        segments = ["07923", "05013", "03153", "01394", "04386", "11235", "comma", "03153", "11235", "00674", "02449"];
+        segments = ["07923", "05013", "03153", "01394", "04386", "11235", "comma", "03153", "11235", "00674", "02450"];
       } else if (currentMode === 'pearlMilkTea') {
         spokenSentence = "\u9019\u676f\u662f\u6211\u6416\u00ea\u73cd\u5976\uFF0C\u6211\u73cd\u5976\u5167\u5e95\u6709\uFF1A";
-        segments = ["07923", "05013", "03153", "09505", "04386", "06422", "53466", "comma", "03153", "06422", "53466", "00674", "02449"];
+        segments = ["07923", "05013", "03153", "09505", "04386", "06422", "53466", "comma", "03153", "06422", "53466", "00674", "02450"];
       } else if (currentMode === 'taiwanOden') {
         spokenSentence = "\u9019\u7897\u662f\u6211\u71d9\u00ea\u70cf\u8f2a\uFF0C\u6211\u70cf\u8f2a\u5167\u5e95\u6709\uFF1A";
-        segments = ["07923", "05013", "03153", "11809", "04386", "06248", "11511", "comma", "03153", "06248", "11511", "00674", "02449"];
+        segments = ["07923", "05013", "03153", "11809", "04386", "06248", "11511", "comma", "03153", "06248", "11511", "00674", "02450"];
       }
 
       segments.push("comma");
@@ -1584,7 +1590,7 @@
         } else if (i === activeIngredients.length - 2) {
           segments.push("comma");
           segments.push("10940"); // \u95a3
-          segments.push("02449"); // \u6709
+          segments.push("02450"); // \u6709
         }
       }
 
